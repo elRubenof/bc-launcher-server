@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bc-launcher-server",
+  "main": "apps/api/src/entry/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bc-launcher-server",
+      "migrations_dir": "packages/db/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BLOBS",
+      "bucket_name": "bc-launcher-server-blobs"
+    }
+  ],
+  // PUBLIC_URL is the deployment's public origin. SESSION_SECRET and JWT_SECRET are secrets:
+  // `wrangler secret put` in production, `.dev.vars` locally.
+  "vars": {
+    "PUBLIC_URL": "http://localhost:8787"
+  }
+}
