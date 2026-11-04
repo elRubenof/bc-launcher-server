@@ -4,6 +4,7 @@ import { requireAdmin } from "./middleware/admin";
 import { sameOrigin } from "./middleware/origin";
 import type { AppEnv, PlatformResolver } from "./platform/types";
 import { problem } from "./problem";
+import { registerAdmins } from "./routes/admins";
 import { registerAssets } from "./routes/assets";
 import { registerAuth } from "./routes/auth";
 import { registerDiscovery } from "./routes/discovery";
@@ -44,6 +45,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
   registerAuth(app);
   registerSettings(app);
   registerAssets(app);
+  registerAdmins(app);
 
   return app;
 }

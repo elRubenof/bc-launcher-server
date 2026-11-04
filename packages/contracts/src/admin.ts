@@ -136,3 +136,89 @@ export const changePasswordRoute = createRoute({
     403: problemResponse("The current password is wrong (`wrong_password`)."),
   },
 });
+
+export const AdminListItem = Admin.extend({
+  /** ISO date of the last sign-in or session use; `null` if the admin never signed in. */
+  lastSeenAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+}).openapi("AdminListItem");
+
+export type AdminListItem = z.infer<typeof AdminListItem>;
+
+export const CreateAdminRequest = z
+  .object({ username: Username, password: Password, role: AdminRole })
+  .openapi("CreateAdminRequest");
+
+const AdminIdParams = z.object({
+  id: z.string().openapi({ param: { name: "id", in: "path" } }),
+});
+
+export const listAdminsRoute = createRoute({
+  method: "get",
+  path: "/api/admin/admins",
+  summary: "Every admin account",
+  tags: ["Admin"],
+  responses: {
+    200: {
+      description: "Admins, owners first.",
+      content: { "application/json": { schema: z.array(AdminListItem) } },
+    },
+    401: problemResponse("Not signed in (`unauthenticated`)."),
+  },
+});
+
+export const createAdminRoute = createRoute({
+  method: "post",
+  path: "/api/admin/admins",
+  summary: "Create an admin account (owner only)",
+  description: "The owner passes the password on to the new admin, who can change it later.",
+  tags: ["Admin"],
+  request: {
+    body: { required: true, content: { "application/json": { schema: CreateAdminRequest } } },
+  },
+  responses: {
+    201: { description: "Created.", content: { "application/json": { schema: AdminListItem } } },
+    400: problemResponse("Invalid request."),
+    401: problemResponse("Not signed in (`unauthenticated`)."),
+    403: problemResponse("Only owners can do this (`forbidden`)."),
+    409: problemResponse("The username is taken (`username_taken`)."),
+  },
+});
+
+export const resetAdminPasswordRoute = createRoute({
+  method: "put",
+  path: "/api/admin/admins/{id}/password",
+  summary: "Reset another admin's password (owner only)",
+  description: "Ends every session of that admin.",
+  tags: ["Admin"],
+  request: {
+    params: AdminIdParams,
+    body: {
+      required: true,
+      content: { "application/json": { schema: z.object({ password: Password }) } },
+    },
+  },
+  responses: {
+    204: { description: "Password reset." },
+    400: problemResponse("Use your own password change instead (`cannot_target_self`)."),
+    401: problemResponse("Not signed in (`unauthenticated`)."),
+    403: problemResponse("Only owners can do this (`forbidden`)."),
+    404: problemResponse("No such admin (`not_found`)."),
+  },
+});
+
+export const deleteAdminRoute = createRoute({
+  method: "delete",
+  path: "/api/admin/admins/{id}",
+  summary: "Remove another admin account (owner only)",
+  description: "Ends every session of that admin.",
+  tags: ["Admin"],
+  request: { params: AdminIdParams },
+  responses: {
+    204: { description: "Removed." },
+    400: problemResponse("You can't remove yourself (`cannot_target_self`)."),
+    401: problemResponse("Not signed in (`unauthenticated`)."),
+    403: problemResponse("Only owners can do this (`forbidden`)."),
+    404: problemResponse("No such admin (`not_found`)."),
+  },
+});
