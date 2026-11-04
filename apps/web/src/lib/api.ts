@@ -16,6 +16,8 @@ export async function apiRequest<T>(method: string, path: string, body?: unknown
   const res = await fetch(path, {
     method,
     credentials: "same-origin",
+    // The panel must see its own changes right away, even on publicly cached responses (discovery).
+    cache: "no-cache",
     headers: body === undefined ? {} : { "Content-Type": "application/json" },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
