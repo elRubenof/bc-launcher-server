@@ -20,8 +20,9 @@ export function randomToken(): string {
   return base64UrlEncode(randomBytes(32));
 }
 
-export async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
+export async function sha256Hex(value: string | Uint8Array<ArrayBuffer>): Promise<string> {
+  const data = typeof value === "string" ? encoder.encode(value) : value;
+  const digest = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
