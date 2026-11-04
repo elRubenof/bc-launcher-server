@@ -144,6 +144,7 @@
             "type": "string",
             "enum": [
               "owner",
+              "admin",
               "editor"
             ]
           }
@@ -407,7 +408,7 @@
           "role": {
             "type": "string",
             "enum": [
-              "owner",
+              "admin",
               "editor"
             ]
           }
@@ -773,7 +774,7 @@
         }
       },
       "put": {
-        "summary": "Change the organization's settings (owner only)",
+        "summary": "Change the organization's settings (owner and admins)",
         "tags": [
           "Admin"
         ],
@@ -819,7 +820,7 @@
             }
           },
           "403": {
-            "description": "Only owners can do this (`forbidden`).",
+            "description": "Only the owner and admins can do this (`forbidden`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -833,7 +834,7 @@
     },
     "/api/admin/settings/{kind}": {
       "put": {
-        "summary": "Upload the organization's logo or icon (owner only)",
+        "summary": "Upload the organization's logo or icon (owner and admins)",
         "description": "PNG, JPEG, WebP or GIF, up to 2 MB, as the raw body.",
         "tags": [
           "Admin"
@@ -913,7 +914,7 @@
             }
           },
           "403": {
-            "description": "Only owners can do this (`forbidden`).",
+            "description": "Only the owner and admins can do this (`forbidden`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -935,7 +936,7 @@
         }
       },
       "delete": {
-        "summary": "Remove the organization's logo or icon (owner only)",
+        "summary": "Remove the organization's logo or icon (owner and admins)",
         "tags": [
           "Admin"
         ],
@@ -975,7 +976,7 @@
             }
           },
           "403": {
-            "description": "Only owners can do this (`forbidden`).",
+            "description": "Only the owner and admins can do this (`forbidden`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1055,7 +1056,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Admins, owners first.",
+            "description": "Accounts: the owner, then admins, then editors.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1080,8 +1081,8 @@
         }
       },
       "post": {
-        "summary": "Create an admin account (owner only)",
-        "description": "The owner passes the password on to the new admin, who can change it later.",
+        "summary": "Create an admin or editor account (owner and admins)",
+        "description": "The creator passes the password on to the new account, who can change it later.",
         "tags": [
           "Admin"
         ],
@@ -1127,7 +1128,7 @@
             }
           },
           "403": {
-            "description": "Only owners can do this (`forbidden`).",
+            "description": "Only the owner and admins can do this (`forbidden`), and nobody can act on the owner (`owner_protected`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1149,9 +1150,101 @@
         }
       }
     },
+    "/api/admin/admins/{id}/role": {
+      "put": {
+        "summary": "Make another account an admin or an editor (owner and admins, never the owner)",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "editor"
+                    ]
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account with its new role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminListItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "You can't change your own role (`cannot_target_self`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only the owner and admins can do this (`forbidden`), and nobody can act on the owner (`owner_protected`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such admin (`not_found`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/admins/{id}/password": {
       "put": {
-        "summary": "Reset another admin's password (owner only)",
+        "summary": "Reset another account's password (owner and admins, never the owner's)",
         "description": "Ends every session of that admin.",
         "tags": [
           "Admin"
@@ -1211,7 +1304,7 @@
             }
           },
           "403": {
-            "description": "Only owners can do this (`forbidden`).",
+            "description": "Only the owner and admins can do this (`forbidden`), and nobody can act on the owner (`owner_protected`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1235,7 +1328,7 @@
     },
     "/api/admin/admins/{id}": {
       "delete": {
-        "summary": "Remove another admin account (owner only)",
+        "summary": "Remove another account (owner and admins, never the owner)",
         "description": "Ends every session of that admin.",
         "tags": [
           "Admin"
@@ -1275,7 +1368,7 @@
             }
           },
           "403": {
-            "description": "Only owners can do this (`forbidden`).",
+            "description": "Only the owner and admins can do this (`forbidden`), and nobody can act on the owner (`owner_protected`).",
             "content": {
               "application/problem+json": {
                 "schema": {

@@ -37,6 +37,7 @@ export const es = {
   "org.public": "Organización pública",
   "org.private": "Organización privada",
   "role.owner": "Owner",
+  "role.admin": "Admin",
   "role.editor": "Editor",
   "account.changePassword": "Cambiar contraseña",
   "account.logout": "Cerrar sesión",

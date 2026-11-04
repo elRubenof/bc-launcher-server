@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "88938bbe-d84d-49ec-8171-18aa4578a7fc",
+  "id": "5166b509-44de-49ff-9d21-dae057411671",
   "prevId": "68ad162f-a61f-4581-8e2c-b80a22a9d182",
   "tables": {
     "admin_sessions": {
@@ -135,6 +135,14 @@
             "username"
           ],
           "isUnique": true
+        },
+        "admins_single_owner": {
+          "name": "admins_single_owner",
+          "columns": [
+            "role"
+          ],
+          "isUnique": true,
+          "where": "role = 'owner'"
         }
       },
       "foreignKeys": {},

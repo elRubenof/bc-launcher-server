@@ -1,5 +1,6 @@
 import {
   type AdminListItem,
+  changeAdminRoleRoute,
   createAdminRoute,
   deleteAdminRoute,
   listAdminsRoute,
@@ -7,10 +8,10 @@ import {
 } from "@bc-launcher-server/contracts";
 import { schema } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import type { Context } from "hono";
 import { hashPassword } from "../auth/password";
-import { ownerOnly } from "../auth/roles";
+import { managersOnly } from "../auth/roles";
 import type { AppEnv } from "../platform/types";
 import { problem } from "../problem";
 
@@ -26,18 +27,19 @@ function toListItem(row: AdminRow): AdminListItem {
   };
 }
 
+const roleOrder = sql`case ${schema.admins.role} when 'owner' then 0 when 'admin' then 1 else 2 end`;
+
 export function registerAdmins(app: OpenAPIHono<AppEnv>) {
   app.openapi(listAdminsRoute, async (c) => {
     const rows = await c.var.platform.db
       .select()
       .from(schema.admins)
-      // "owner" sorts after "editor", so descending puts owners first.
-      .orderBy(desc(schema.admins.role), asc(schema.admins.username));
+      .orderBy(roleOrder, asc(schema.admins.username));
     return c.json(rows.map(toListItem), 200);
   });
 
   app.openapi(createAdminRoute, async (c) => {
-    const forbidden = ownerOnly(c);
+    const forbidden = managersOnly(c);
     if (forbidden) return forbidden;
 
     const { db } = c.var.platform;
@@ -59,12 +61,43 @@ export function registerAdmins(app: OpenAPIHono<AppEnv>) {
     return c.json(toListItem(created), 201);
   });
 
-  app.openapi(resetAdminPasswordRoute, async (c) => {
-    const forbidden = ownerOnly(c);
+  app.openapi(changeAdminRoleRoute, async (c) => {
+    const forbidden = managersOnly(c);
     if (forbidden) return forbidden;
 
     const { id } = c.req.valid("param");
-    const target = await findOther(c, id);
+    const target = await findTarget(c, id);
+    if (target instanceof Response) return target;
+
+    const { db } = c.var.platform;
+    const { role } = c.req.valid("json");
+    if (role === target.role) return c.json(toListItem(target), 200);
+
+    // The new role applies to the account's next request: sessions read it from the database.
+    const [updated] = await db.batch([
+      db
+        .update(schema.admins)
+        .set({ role, updatedAt: new Date() })
+        .where(eq(schema.admins.id, id))
+        .returning(),
+      db.insert(schema.auditLog).values({
+        adminId: c.var.admin.id,
+        action: "admin.role_changed",
+        target: id,
+        details: { username: target.username, from: target.role, to: role },
+      }),
+    ]);
+    const row = updated[0];
+    if (!row) return problem(c, 404, "not_found", "No such admin");
+    return c.json(toListItem(row), 200);
+  });
+
+  app.openapi(resetAdminPasswordRoute, async (c) => {
+    const forbidden = managersOnly(c);
+    if (forbidden) return forbidden;
+
+    const { id } = c.req.valid("param");
+    const target = await findTarget(c, id);
     if (target instanceof Response) return target;
 
     const { db } = c.var.platform;
@@ -86,15 +119,15 @@ export function registerAdmins(app: OpenAPIHono<AppEnv>) {
   });
 
   app.openapi(deleteAdminRoute, async (c) => {
-    const forbidden = ownerOnly(c);
+    const forbidden = managersOnly(c);
     if (forbidden) return forbidden;
 
     const { id } = c.req.valid("param");
-    const target = await findOther(c, id);
+    const target = await findTarget(c, id);
     if (target instanceof Response) return target;
 
     const { db } = c.var.platform;
-    // Sessions go with the admin (ON DELETE CASCADE).
+    // Sessions go with the account (ON DELETE CASCADE).
     await db.batch([
       db.delete(schema.admins).where(eq(schema.admins.id, id)),
       db.insert(schema.auditLog).values({
@@ -108,8 +141,12 @@ export function registerAdmins(app: OpenAPIHono<AppEnv>) {
   });
 }
 
-/** The admin with `id`, unless it's the caller (they use their own password change). */
-async function findOther(c: Context<AppEnv>, id: string) {
+/**
+ * The account someone can act on: never their own (they use their own password change), and never
+ * the owner's. Since only the owner could otherwise act on the owner, that is the same as saying
+ * nobody can.
+ */
+async function findTarget(c: Context<AppEnv>, id: string) {
   if (id === c.var.admin.id) {
     return problem(c, 400, "cannot_target_self", "You can't do this to your own account");
   }
@@ -117,5 +154,9 @@ async function findOther(c: Context<AppEnv>, id: string) {
     .select()
     .from(schema.admins)
     .where(eq(schema.admins.id, id));
-  return target ?? problem(c, 404, "not_found", "No such admin");
+  if (!target) return problem(c, 404, "not_found", "No such admin");
+  if (target.role === "owner") {
+    return problem(c, 403, "owner_protected", "Nobody can change or remove the owner");
+  }
+  return target;
 }

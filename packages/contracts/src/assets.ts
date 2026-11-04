@@ -16,7 +16,7 @@ const OrganizationImageParams = z.object({
 export const uploadOrganizationImageRoute = createRoute({
   method: "put",
   path: "/api/admin/settings/{kind}",
-  summary: "Upload the organization's logo or icon (owner only)",
+  summary: "Upload the organization's logo or icon (owner and admins)",
   description: `PNG, JPEG, WebP or GIF, up to ${MAX_IMAGE_BYTES / 1024 / 1024} MB, as the raw body.`,
   tags: ["Admin"],
   request: {
@@ -30,7 +30,7 @@ export const uploadOrganizationImageRoute = createRoute({
     },
     400: problemResponse("Not a PNG, JPEG, WebP or GIF image (`invalid_image`)."),
     401: problemResponse("Not signed in (`unauthenticated`)."),
-    403: problemResponse("Only owners can do this (`forbidden`)."),
+    403: problemResponse("Only the owner and admins can do this (`forbidden`)."),
     413: problemResponse("The image is too large (`image_too_large`)."),
   },
 });
@@ -38,7 +38,7 @@ export const uploadOrganizationImageRoute = createRoute({
 export const deleteOrganizationImageRoute = createRoute({
   method: "delete",
   path: "/api/admin/settings/{kind}",
-  summary: "Remove the organization's logo or icon (owner only)",
+  summary: "Remove the organization's logo or icon (owner and admins)",
   tags: ["Admin"],
   request: { params: OrganizationImageParams },
   responses: {
@@ -47,7 +47,7 @@ export const deleteOrganizationImageRoute = createRoute({
       content: { "application/json": { schema: OrganizationSettings } },
     },
     401: problemResponse("Not signed in (`unauthenticated`)."),
-    403: problemResponse("Only owners can do this (`forbidden`)."),
+    403: problemResponse("Only the owner and admins can do this (`forbidden`)."),
   },
 });
 

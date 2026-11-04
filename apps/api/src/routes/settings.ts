@@ -2,7 +2,7 @@ import { getSettingsRoute, updateSettingsRoute } from "@bc-launcher-server/contr
 import { schema } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { eq } from "drizzle-orm";
-import { ownerOnly } from "../auth/roles";
+import { managersOnly } from "../auth/roles";
 import type { AppEnv } from "../platform/types";
 import { readSettings, toOrganizationSettings } from "../settings";
 
@@ -13,7 +13,7 @@ export function registerSettings(app: OpenAPIHono<AppEnv>) {
   });
 
   app.openapi(updateSettingsRoute, async (c) => {
-    const forbidden = ownerOnly(c);
+    const forbidden = managersOnly(c);
     if (forbidden) return forbidden;
 
     const { db, config } = c.var.platform;

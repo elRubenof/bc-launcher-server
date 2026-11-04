@@ -63,7 +63,7 @@ describe("organization images", () => {
     expect(await res.json()).toMatchObject({ code: "image_too_large" });
   });
 
-  it("only lets owners change the images", async () => {
+  it("doesn't let editors change the images", async () => {
     const { app, platform } = await setup();
     const editor = await signInAs(app, platform, "editor", "editor");
 

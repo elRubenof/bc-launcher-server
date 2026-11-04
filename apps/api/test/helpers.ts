@@ -64,7 +64,7 @@ export async function signInAs(
   app: TestApp,
   platform: Platform,
   username: string,
-  role: "owner" | "editor",
+  role: "admin" | "editor",
 ) {
   const password = `${username}-password`;
   await platform.db.insert(schema.admins).values({

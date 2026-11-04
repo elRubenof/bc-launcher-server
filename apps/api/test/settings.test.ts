@@ -58,6 +58,15 @@ describe("organization settings", () => {
     });
   });
 
+  it("can be changed by an admin", async () => {
+    const { app, platform } = await setup();
+    const admin = await signInAs(app, platform, "alex", "admin");
+
+    const res = await jsonRequest(app, "PUT", "/api/admin/settings", update, { Cookie: admin });
+
+    expect(res.status).toBe(200);
+  });
+
   it("can't be changed by an editor", async () => {
     const { app, platform } = await setup();
     const editor = await signInAs(app, platform, "editor", "editor");

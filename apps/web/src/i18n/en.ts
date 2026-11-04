@@ -38,6 +38,7 @@ export const en: Messages = {
   "org.public": "Public organization",
   "org.private": "Private organization",
   "role.owner": "Owner",
+  "role.admin": "Admin",
   "role.editor": "Editor",
   "account.changePassword": "Change password",
   "account.logout": "Sign out",

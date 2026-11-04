@@ -11,6 +11,5 @@ CREATE TABLE `setup_lock` (
 	CONSTRAINT "setup_lock_single_row" CHECK("setup_lock"."id" = 1)
 );
 --> statement-breakpoint
-DROP INDEX `admins_single_owner`;--> statement-breakpoint
 ALTER TABLE `admins` ADD `last_seen_at` integer;--> statement-breakpoint
 INSERT INTO `setup_lock` (`id`) SELECT 1 WHERE EXISTS (SELECT 1 FROM `admins`);

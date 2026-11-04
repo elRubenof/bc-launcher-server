@@ -59,7 +59,7 @@ export const getSettingsRoute = createRoute({
 export const updateSettingsRoute = createRoute({
   method: "put",
   path: "/api/admin/settings",
-  summary: "Change the organization's settings (owner only)",
+  summary: "Change the organization's settings (owner and admins)",
   tags: ["Admin"],
   request: {
     body: {
@@ -71,6 +71,6 @@ export const updateSettingsRoute = createRoute({
     200: settingsResponse,
     400: problemResponse("Invalid request."),
     401: problemResponse("Not signed in (`unauthenticated`)."),
-    403: problemResponse("Only owners can do this (`forbidden`)."),
+    403: problemResponse("Only the owner and admins can do this (`forbidden`)."),
   },
 });

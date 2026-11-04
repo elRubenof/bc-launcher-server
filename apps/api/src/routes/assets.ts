@@ -8,7 +8,7 @@ import { schema } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { eq } from "drizzle-orm";
 import { sha256Hex } from "../auth/crypto";
-import { ownerOnly } from "../auth/roles";
+import { managersOnly } from "../auth/roles";
 import { sniffImageType } from "../images";
 import type { AppEnv } from "../platform/types";
 import { problem } from "../problem";
@@ -18,7 +18,7 @@ const column = { logo: "logoBlob", icon: "iconBlob" } as const;
 
 export function registerAssets(app: OpenAPIHono<AppEnv>) {
   app.openapi(uploadOrganizationImageRoute, async (c) => {
-    const forbidden = ownerOnly(c);
+    const forbidden = managersOnly(c);
     if (forbidden) return forbidden;
 
     const { kind } = c.req.valid("param");
@@ -57,7 +57,7 @@ export function registerAssets(app: OpenAPIHono<AppEnv>) {
   });
 
   app.openapi(deleteOrganizationImageRoute, async (c) => {
-    const forbidden = ownerOnly(c);
+    const forbidden = managersOnly(c);
     if (forbidden) return forbidden;
 
     const { kind } = c.req.valid("param");
