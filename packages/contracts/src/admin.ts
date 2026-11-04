@@ -112,3 +112,27 @@ export const meRoute = createRoute({
     401: problemResponse("Not signed in (`unauthenticated`)."),
   },
 });
+
+export const ChangePasswordRequest = z
+  .object({
+    currentPassword: z.string().min(1).max(256),
+    newPassword: Password,
+  })
+  .openapi("ChangePasswordRequest");
+
+export const changePasswordRoute = createRoute({
+  method: "put",
+  path: "/api/admin/auth/password",
+  summary: "Change your own password",
+  description: "Ends every other session of this admin; the current one stays signed in.",
+  tags: ["Admin"],
+  request: {
+    body: { required: true, content: { "application/json": { schema: ChangePasswordRequest } } },
+  },
+  responses: {
+    204: { description: "Password changed." },
+    400: problemResponse("Invalid request."),
+    401: problemResponse("Not signed in (`unauthenticated`)."),
+    403: problemResponse("The current password is wrong (`wrong_password`)."),
+  },
+});

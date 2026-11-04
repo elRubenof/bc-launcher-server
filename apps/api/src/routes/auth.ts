@@ -1,9 +1,14 @@
-import { loginRoute, logoutRoute, meRoute } from "@bc-launcher-server/contracts";
+import {
+  changePasswordRoute,
+  loginRoute,
+  logoutRoute,
+  meRoute,
+} from "@bc-launcher-server/contracts";
 import { schema } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { eq } from "drizzle-orm";
 import { hashPassword, verifyPassword } from "../auth/password";
-import { endSession, startSession } from "../auth/sessions";
+import { endAllSessions, endSession, startSession } from "../auth/sessions";
 import type { AppEnv } from "../platform/types";
 import { problem } from "../problem";
 
@@ -38,4 +43,29 @@ export function registerAuth(app: OpenAPIHono<AppEnv>) {
   });
 
   app.openapi(meRoute, (c) => c.json(c.var.admin, 200));
+
+  app.openapi(changePasswordRoute, async (c) => {
+    const { db } = c.var.platform;
+    const { currentPassword, newPassword } = c.req.valid("json");
+    const [admin] = await db
+      .select()
+      .from(schema.admins)
+      .where(eq(schema.admins.id, c.var.admin.id));
+    if (!admin || !(await verifyPassword(currentPassword, admin.passwordHash))) {
+      return problem(c, 403, "wrong_password", "The current password is wrong");
+    }
+
+    await db
+      .update(schema.admins)
+      .set({ passwordHash: await hashPassword(newPassword), updatedAt: new Date() })
+      .where(eq(schema.admins.id, admin.id));
+    await endAllSessions(db, admin.id);
+    await startSession(c, admin.id);
+    await db.insert(schema.auditLog).values({
+      adminId: admin.id,
+      action: "admin.password_changed",
+      target: admin.id,
+    });
+    return c.body(null, 204);
+  });
 }

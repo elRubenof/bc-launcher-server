@@ -104,3 +104,48 @@ describe("admin auth", () => {
     expect(sessions.every((session) => /^[0-9a-f]{64}$/.test(session.id))).toBe(true);
   });
 });
+
+describe("password change", () => {
+  const change = (
+    app: Awaited<ReturnType<typeof createTestApp>>,
+    cookie: string,
+    currentPassword: string,
+    newPassword: string,
+  ) =>
+    jsonRequest(
+      app,
+      "PUT",
+      "/api/admin/auth/password",
+      { currentPassword, newPassword },
+      { Cookie: cookie },
+    );
+
+  it("changes the password, ends other sessions and keeps this one", async () => {
+    const { app, platform } = await signedOut();
+    const current = sessionCookie(await login(app, "owner", OWNER.password));
+    const other = sessionCookie(await login(app, "owner", OWNER.password));
+
+    const res = await change(app, current, OWNER.password, "new-password");
+
+    expect(res.status).toBe(204);
+    const renewed = sessionCookie(res);
+    expect((await me(app, renewed)).status).toBe(200);
+    expect((await me(app, current)).status).toBe(401);
+    expect((await me(app, other)).status).toBe(401);
+    expect((await login(app, "owner", OWNER.password)).status).toBe(401);
+    expect((await login(app, "owner", "new-password")).status).toBe(200);
+    const log = await platform.db.select().from(schema.auditLog);
+    expect(log.map((entry) => entry.action)).toContain("admin.password_changed");
+  });
+
+  it("requires the current password", async () => {
+    const { app } = await signedOut();
+    const cookie = sessionCookie(await login(app, "owner", OWNER.password));
+
+    const res = await change(app, cookie, "wrong", "new-password");
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ code: "wrong_password" });
+    expect((await me(app, cookie)).status).toBe(200);
+  });
+});
