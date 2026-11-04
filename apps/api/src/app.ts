@@ -1,9 +1,10 @@
+import { OpenAPIHono } from "@hono/zod-openapi";
 import { sql } from "drizzle-orm";
-import { Hono } from "hono";
 import type { AppEnv, PlatformResolver } from "./platform/types";
+import { registerDiscovery } from "./routes/discovery";
 
 export function createApp(resolvePlatform: PlatformResolver) {
-  const app = new Hono<AppEnv>();
+  const app = new OpenAPIHono<AppEnv>();
 
   app.use(async (c, next) => {
     c.set("platform", resolvePlatform(c.env));
@@ -19,6 +20,8 @@ export function createApp(resolvePlatform: PlatformResolver) {
       return c.json({ status: "error" }, 503);
     }
   });
+
+  registerDiscovery(app);
 
   return app;
 }

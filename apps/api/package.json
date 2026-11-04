@@ -1,5 +1,6 @@
 {
   "name": "@bc-launcher-server/api",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "license": "GPL-3.0-only",
@@ -10,11 +11,14 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@bc-launcher-server/contracts": "workspace:*",
     "@bc-launcher-server/db": "workspace:*",
     "@hono/node-server": "2.1.6",
+    "@hono/zod-openapi": "1.6.3",
     "@libsql/client": "0.18.0",
     "drizzle-orm": "0.45.4",
-    "hono": "4.13.16"
+    "hono": "4.13.16",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261103.1",
