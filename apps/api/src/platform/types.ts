@@ -1,3 +1,5 @@
+import type { Database } from "@bc-launcher-server/db";
+
 /** Content-addressed blob storage: R2 on Workers, the filesystem on Node. */
 export interface BlobStore {
   /** Returns the blob's size, or `null` if it doesn't exist. */
@@ -16,6 +18,7 @@ export interface Config {
 
 /** Everything that differs between Cloudflare and Docker. */
 export interface Platform {
+  db: Database;
   blobs: BlobStore;
   config: Config;
 }

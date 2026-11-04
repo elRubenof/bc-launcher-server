@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv, PlatformResolver } from "./platform/types";
 
@@ -9,7 +10,15 @@ export function createApp(resolvePlatform: PlatformResolver) {
     await next();
   });
 
-  app.get("/health", (c) => c.json({ status: "ok" }));
+  app.get("/health", async (c) => {
+    try {
+      await c.var.platform.db.run(sql`select 1`);
+      return c.json({ status: "ok" });
+    } catch (error) {
+      console.error("Health check failed", error);
+      return c.json({ status: "error" }, 503);
+    }
+  });
 
   return app;
 }

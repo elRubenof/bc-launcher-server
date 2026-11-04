@@ -8,6 +8,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@bc-launcher-server/db": "workspace:*",
+    "@libsql/client": "0.18.0",
+    "drizzle-orm": "0.45.4",
     "hono": "4.13.16"
   },
   "devDependencies": {

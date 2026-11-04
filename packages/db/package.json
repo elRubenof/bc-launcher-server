@@ -1,0 +1,20 @@
+{
+  "name": "@bc-launcher-server/db",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@libsql/client": "0.18.0",
+    "drizzle-orm": "0.45.4",
+    "typescript": "7.0.2"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "0.45.4"
+  }
+}
