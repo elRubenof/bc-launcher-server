@@ -5,6 +5,7 @@ import { createApp } from "../app";
 import { loadConfig } from "../platform/config";
 import { FsBlobStore } from "../platform/node/fs-blob-store";
 import { createLibsqlDatabase } from "../platform/node/libsql-database";
+import { migrateLibsqlDatabase, SOURCE_MIGRATIONS_DIR } from "../platform/node/migrate";
 import type { Platform } from "../platform/types";
 
 const config = loadConfig(process.env);
@@ -13,8 +14,11 @@ const port = Number(process.env.PORT ?? 3000);
 
 mkdirSync(join(dataDir, "blobs"), { recursive: true });
 
+const db = createLibsqlDatabase(`file:${join(dataDir, "db.sqlite")}`);
+await migrateLibsqlDatabase(db, resolve(process.env.MIGRATIONS_DIR ?? SOURCE_MIGRATIONS_DIR));
+
 const platform: Platform = {
-  db: createLibsqlDatabase(`file:${join(dataDir, "db.sqlite")}`),
+  db,
   blobs: new FsBlobStore(join(dataDir, "blobs")),
   config,
 };

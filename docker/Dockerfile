@@ -12,11 +12,13 @@ RUN pnpm --filter @bc-launcher-server/api deploy --prod --legacy /out
 FROM node:22-slim
 ENV NODE_ENV=production \
     DATA_DIR=/data \
+    MIGRATIONS_DIR=/app/migrations \
     PORT=3000
 WORKDIR /app
 COPY --from=build /out/package.json ./
 COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /src/apps/api/dist/node.js ./
+COPY --from=build /src/packages/db/migrations ./migrations
 RUN mkdir -p /data && chown node:node /data
 USER node
 VOLUME /data
