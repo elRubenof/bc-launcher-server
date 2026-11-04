@@ -1,0 +1,30 @@
+/** Content-addressed blob storage: R2 on Workers, the filesystem on Node. */
+export interface BlobStore {
+  /** Returns the blob's size, or `null` if it doesn't exist. */
+  head(sha256: string): Promise<{ size: number } | null>;
+  get(sha256: string): Promise<{ body: ReadableStream<Uint8Array>; size: number } | null>;
+  /** Stores a blob. `size` must be the exact byte length of `body` (R2 needs it for streams). */
+  put(sha256: string, body: ReadableStream<Uint8Array>, size: number): Promise<void>;
+  delete(sha256: string): Promise<void>;
+}
+
+export interface Config {
+  publicUrl: string;
+  sessionSecret: string;
+  jwtSecret: string;
+}
+
+/** Everything that differs between Cloudflare and Docker. */
+export interface Platform {
+  blobs: BlobStore;
+  config: Config;
+}
+
+/** Builds the platform from the runtime's bindings (`c.env` on Workers, unused on Node). */
+export type PlatformResolver = (env: unknown) => Platform;
+
+export type AppEnv = {
+  Variables: {
+    platform: Platform;
+  };
+};
