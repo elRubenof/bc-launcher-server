@@ -1,0 +1,64 @@
+import { createRoute, z } from "@hono/zod-openapi";
+import { problemResponse } from "./problem";
+
+export const Username = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9][a-z0-9_.-]{2,31}$/, "3-32 characters: letters, numbers, '_', '.' or '-'");
+
+export const Password = z.string().min(8).max(256);
+
+export const AdminRole = z.enum(["owner", "editor"]);
+
+export const Admin = z
+  .object({
+    id: z.string(),
+    username: z.string(),
+    role: AdminRole,
+  })
+  .openapi("Admin");
+
+export type Admin = z.infer<typeof Admin>;
+
+export const SetupStatus = z.object({ required: z.boolean() }).openapi("SetupStatus");
+
+export const SetupRequest = z
+  .object({
+    organizationName: z.string().trim().min(1).max(100),
+    username: Username,
+    password: Password,
+  })
+  .openapi("SetupRequest");
+
+export const getSetupStatusRoute = createRoute({
+  method: "get",
+  path: "/api/admin/setup",
+  summary: "Whether the first owner still has to be created",
+  tags: ["Admin"],
+  responses: {
+    200: {
+      description: "Setup status.",
+      content: { "application/json": { schema: SetupStatus } },
+    },
+  },
+});
+
+export const setupRoute = createRoute({
+  method: "post",
+  path: "/api/admin/setup",
+  summary: "Create the first owner and name the organization",
+  description: "Only works while there are no admins. Signs the new owner in.",
+  tags: ["Admin"],
+  request: {
+    body: { required: true, content: { "application/json": { schema: SetupRequest } } },
+  },
+  responses: {
+    201: {
+      description: "Owner created and signed in.",
+      content: { "application/json": { schema: Admin } },
+    },
+    400: problemResponse("Invalid request."),
+    409: problemResponse("Setup was already completed (`setup_completed`)."),
+  },
+});

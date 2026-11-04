@@ -119,6 +119,90 @@
           "capabilities",
           "auth"
         ]
+      },
+      "SetupStatus": {
+        "type": "object",
+        "properties": {
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required"
+        ]
+      },
+      "Admin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "editor"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "role"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ]
+      },
+      "SetupRequest": {
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "username": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_.-]{2,31}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "organizationName",
+          "username",
+          "password"
+        ]
       }
     },
     "parameters": {}
@@ -137,6 +221,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DiscoveryDocument"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/setup": {
+      "get": {
+        "summary": "Whether the first owner still has to be created",
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Setup status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create the first owner and name the organization",
+        "description": "Only works while there are no admins. Signs the new owner in.",
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Owner created and signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Admin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Setup was already completed (`setup_completed`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }

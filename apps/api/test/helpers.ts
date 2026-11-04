@@ -23,3 +23,20 @@ export async function createTestApp(platform?: Platform) {
   const resolved = platform ?? (await createTestPlatform());
   return createApp(() => resolved);
 }
+
+type TestApp = Awaited<ReturnType<typeof createTestApp>>;
+
+/** A same-origin JSON request, as the panel sends it. */
+export function jsonRequest(
+  app: TestApp,
+  method: string,
+  path: string,
+  body?: unknown,
+  headers: Record<string, string> = {},
+) {
+  return app.request(path, {
+    method,
+    headers: { Origin: "http://localhost", "Content-Type": "application/json", ...headers },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+}

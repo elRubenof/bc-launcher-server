@@ -1,15 +1,29 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { sql } from "drizzle-orm";
+import { sameOrigin } from "./middleware/origin";
 import type { AppEnv, PlatformResolver } from "./platform/types";
+import { problem } from "./problem";
 import { registerDiscovery } from "./routes/discovery";
+import { registerSetup } from "./routes/setup";
 
 export function createApp(resolvePlatform: PlatformResolver) {
-  const app = new OpenAPIHono<AppEnv>();
+  const app = new OpenAPIHono<AppEnv>({
+    defaultHook: (result, c) => {
+      if (!result.success) {
+        const detail = result.error.issues
+          .map((issue) => `${issue.path.join(".") || "body"}: ${issue.message}`)
+          .join("; ");
+        return problem(c, 400, "validation_error", "Invalid request", detail);
+      }
+    },
+  });
 
   app.use(async (c, next) => {
     c.set("platform", resolvePlatform(c.env));
     await next();
   });
+
+  app.use("/api/admin/*", sameOrigin);
 
   app.get("/health", async (c) => {
     try {
@@ -22,6 +36,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
   });
 
   registerDiscovery(app);
+  registerSetup(app);
 
   return app;
 }
