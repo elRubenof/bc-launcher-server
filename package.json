@@ -14,7 +14,9 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "vitest run",
     "openapi": "pnpm --filter @bc-launcher-server/api openapi",
-    "db:generate": "pnpm --filter @bc-launcher-server/db generate"
+    "db:generate": "pnpm --filter @bc-launcher-server/db generate",
+    "dev:web": "pnpm --filter @bc-launcher-server/web dev",
+    "build:web": "pnpm --filter @bc-launcher-server/web build"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
