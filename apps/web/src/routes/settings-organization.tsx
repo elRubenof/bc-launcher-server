@@ -56,7 +56,8 @@ function OrganizationForm({ settings }: { settings: OrganizationSettings }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const me = useQuery(meQuery);
-  const readOnly = me.data?.role !== "owner";
+  // Editors can see the settings but not change them.
+  const readOnly = me.data?.role === "editor";
   const [form, setForm] = useState(() => toForm(settings));
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const descriptionId = useId();

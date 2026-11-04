@@ -28,7 +28,8 @@ export function SettingsAdminsPage() {
   const { t } = useI18n();
   const admins = useQuery(adminsQuery);
   const me = useQuery(meQuery);
-  const isOwner = me.data?.role === "owner";
+  // The owner and admins manage accounts; editors only see them.
+  const canManage = me.data !== undefined && me.data.role !== "editor";
 
   return (
     <div className="flex flex-wrap items-start gap-5">
@@ -40,12 +41,12 @@ export function SettingsAdminsPage() {
               key={admin.id}
               admin={admin}
               isMe={admin.id === me.data?.id}
-              canManage={isOwner}
+              canManage={canManage}
             />
           ))}
         </ul>
       </Card>
-      {isOwner ? <NewAdminForm /> : null}
+      {canManage ? <NewAdminForm /> : null}
     </div>
   );
 }
@@ -84,24 +85,58 @@ function AdminRow({
         </span>
         <span className="text-xs text-muted-foreground">{status}</span>
       </span>
-      <Badge variant={admin.role === "owner" ? "primary" : "muted"}>
-        {t(`role.${admin.role}`)}
-      </Badge>
       {isMe ? (
-        <ChangePasswordDialog
-          trigger={
-            <Button variant="outline" size="sm">
-              {t("admins.changeMyPassword")}
-            </Button>
-          }
-        />
-      ) : canManage ? (
         <>
+          <RoleBadge role={admin.role} />
+          <ChangePasswordDialog
+            trigger={
+              <Button variant="outline" size="sm">
+                {t("admins.changeMyPassword")}
+              </Button>
+            }
+          />
+        </>
+      ) : canManage && admin.role !== "owner" ? (
+        <>
+          <RoleSelect admin={admin} />
           <ResetPasswordDialog admin={admin} />
           <RemoveAdminDialog admin={admin} />
         </>
-      ) : null}
+      ) : (
+        <RoleBadge role={admin.role} />
+      )}
     </li>
+  );
+}
+
+function RoleBadge({ role }: { role: AdminListItem["role"] }) {
+  const { t } = useI18n();
+  return <Badge variant={role === "editor" ? "muted" : "primary"}>{t(`role.${role}`)}</Badge>;
+}
+
+/** Switches an account between admin and editor. Never shown for the owner. */
+function RoleSelect({ admin }: { admin: AdminListItem }) {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const change = useMutation({
+    mutationFn: (role: "admin" | "editor") => api.changeAdminRole(admin.id, role),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: adminsQuery.queryKey }),
+  });
+
+  return (
+    <select
+      aria-label={t("admins.roleOf", { username: admin.username })}
+      value={change.isPending ? change.variables : admin.role}
+      disabled={change.isPending}
+      onChange={(event) => change.mutate(event.target.value as "admin" | "editor")}
+      className="h-9 cursor-pointer rounded-md border border-input bg-transparent px-2 text-[13px] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {(["admin", "editor"] as const).map((role) => (
+        <option key={role} value={role} className="bg-card">
+          {t(`role.${role}`)}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -238,7 +273,7 @@ function NewAdminForm() {
   const queryClient = useQueryClient();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"editor" | "owner">("editor");
+  const [role, setRole] = useState<"editor" | "admin">("editor");
   const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
 
   const create = useMutation({
@@ -298,7 +333,7 @@ function NewAdminForm() {
         />
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <legend className="mb-2 p-0 font-medium">{t("admins.role")}</legend>
-          {(["editor", "owner"] as const).map((value) => (
+          {(["editor", "admin"] as const).map((value) => (
             <ChoiceCard
               key={value}
               name="role"

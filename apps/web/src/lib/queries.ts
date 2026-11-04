@@ -66,10 +66,12 @@ export const api = {
     apiRequest<OrganizationSettings>("PUT", `/api/admin/settings/${kind}`, file),
   removeImage: (kind: "logo" | "icon") =>
     apiRequest<OrganizationSettings>("DELETE", `/api/admin/settings/${kind}`),
-  createAdmin: (body: { username: string; password: string; role: "owner" | "editor" }) =>
+  createAdmin: (body: { username: string; password: string; role: "admin" | "editor" }) =>
     apiRequest<AdminListItem>("POST", "/api/admin/admins", body),
   resetAdminPassword: (id: string, password: string) =>
     apiRequest<void>("PUT", `/api/admin/admins/${encodeURIComponent(id)}/password`, { password }),
+  changeAdminRole: (id: string, role: "admin" | "editor") =>
+    apiRequest<AdminListItem>("PUT", `/api/admin/admins/${encodeURIComponent(id)}/role`, { role }),
   removeAdmin: (id: string) =>
     apiRequest<void>("DELETE", `/api/admin/admins/${encodeURIComponent(id)}`),
 };

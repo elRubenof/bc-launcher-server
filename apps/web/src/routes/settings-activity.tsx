@@ -143,6 +143,14 @@ function describe(entry: ActivityEntry, t: T): { text: string; detail?: string }
           role: t(`role.${str("role") || "editor"}` as MessageKey),
         }),
       };
+    case "admin.role_changed":
+      return {
+        text: t("action.admin.role_changed", { username: str("username") }),
+        detail: t("action.admin.role_changed.detail", {
+          from: t(`role.${str("from") || "editor"}` as MessageKey),
+          to: t(`role.${str("to") || "editor"}` as MessageKey),
+        }),
+      };
     case "admin.removed":
     case "admin.password_reset":
       return { text: t(`action.${entry.action}`, { username: str("username") }) };
