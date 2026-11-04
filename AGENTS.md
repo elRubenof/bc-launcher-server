@@ -14,7 +14,7 @@ Deploy targets: **Cloudflare** (Workers + D1 + R2 + static assets) and **Docker*
 
 This repo contains **only the server**. The launcher is the separate `bc-launcher` repo (Flutter). The two talk only through the public contract (discovery, `/api/vN`, the launcher's `compat.json`), so never assume both are deployed at the same version. The cross-repo decisions are in `bc-launcher/AGENTS.md` → "Architecture decisions".
 
-- Status: **early development**. Only the tooling exists; most of what is described below is planned.
+- Status: **early development**. The API skeleton runs on both runtimes (`/health`, discovery with default values); the rest of what is described below is planned.
 - License: GPL-3.0 (`LICENSE`).
 
 ## Commands
@@ -27,21 +27,32 @@ pnpm lint             # Biome lint + format check (must pass before committing)
 pnpm format           # apply Biome fixes and formatting
 pnpm typecheck        # tsc in every package that defines a typecheck script
 pnpm test             # Vitest
+pnpm openapi          # regenerate packages/contracts/openapi.json (commit it with any contract change)
+pnpm dev:worker       # wrangler dev: Worker + local D1/R2 on :8787 (secrets in .dev.vars, see .dev.vars.example)
+pnpm --filter @bc-launcher-server/api dev:node    # Node server on :3000 (env in apps/api/.env, see .env.example)
+pnpm --filter @bc-launcher-server/api build:node  # bundle the Node server to apps/api/dist/node.js
+docker compose -f docker/docker-compose.yml up --build   # Docker image (secrets in docker/.env)
 ```
 
-CI (`.github/workflows/ci.yml`) runs install (frozen lockfile), lint, typecheck and test on every push and pull request.
+CI (`.github/workflows/ci.yml`) runs install (frozen lockfile), lint, typecheck, test and the `openapi.json` freshness check on every push and pull request, and builds and smoke-tests the Docker image.
 
 ## Project layout
 
 ```
 apps/
-  api/          Hono API. src/app.ts (runtime-agnostic app) + src/entry/worker.ts + src/entry/node.ts   (planned)
+  api/
+    src/app.ts            createApp(resolvePlatform): the runtime-agnostic Hono app (OpenAPIHono)
+    src/routes/           route handlers, one file per area (discovery, ...)
+    src/platform/         Platform interface, config, in-memory BlobStore; node/ and worker/ adapters
+    src/entry/            node.ts (@hono/node-server) and worker.ts (Cloudflare fetch handler)
+    scripts/openapi.ts    writes packages/contracts/openapi.json
+    test/                 Vitest; blob-store.ts is the shared BlobStore contract test
   web/          React + Vite + shadcn/ui (TanStack Router + Query): public page "/" and panel "/admin"  (planned)
 packages/
-  contracts/    zod schemas + @hono/zod-openapi routes; generates openapi.json                          (planned)
-  db/           Drizzle schema (SQLite) + SQL migrations shared by D1 and Node                         (planned)
-docker/         Dockerfile, docker-compose.yml                                                         (planned)
-wrangler.jsonc  D1 + R2 + static assets + cron, "Deploy to Cloudflare" button                          (planned)
+  contracts/    zod schemas + @hono/zod-openapi route definitions; openapi.json (generated, committed)
+  db/           Drizzle schema (SQLite) + the shared Database type; migrations/ for D1 and Node (planned)
+docker/         Dockerfile (Node 22, multi-stage), docker-compose.yml example
+wrangler.jsonc  Worker config: D1 (DB), R2 (BLOBS); static assets, cron and the deploy button are planned
 tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 ```
 
@@ -50,11 +61,13 @@ tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 - **TypeScript strict** everywhere. Every package extends `tsconfig.base.json` (strict, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`, `types: []`: each package declares the runtime types it needs).
 - **Biome** formats and lints (2 spaces, double quotes, 100 columns). Don't add ESLint or Prettier.
 - **Vitest** for tests. API tests use `app.request()` with in-memory SQLite and an in-memory `BlobStore`.
-- **Dependencies:** pin exact versions. pnpm enforces a minimum release age; don't add `minimumReleaseAgeExclude` entries to get around it, pick an older version instead.
+- **Dependencies:** pin exact versions. pnpm enforces a minimum release age; don't add `minimumReleaseAgeExclude` entries to get around it, pick an older version instead. Packages allowed to run install scripts are listed under `allowBuilds` in `pnpm-workspace.yaml`.
+- **Workspace packages** (`packages/*`) are consumed as TypeScript source (`exports` points at `src/`), so there is no build step between them. Libraries whose types must be shared with the app (`drizzle-orm`, `hono`, `zod`, `@hono/zod-openapi`) are **peer dependencies** of the package (plus dev dependencies for its own typecheck). `packages/db` also lists drizzle's optional peers that the app installs (`@libsql/client`, `@cloudflare/workers-types`) as dev dependencies, so pnpm resolves a single `drizzle-orm` instance; otherwise types like `SQL` stop matching.
+- **One tsconfig per runtime in `apps/api`:** `tsconfig.common.json` (shared code, web APIs only), `tsconfig.node.json` (Node adapters, entry, tests and scripts, with `@types/node`) and `tsconfig.worker.json` (Worker adapters and entry, with `@cloudflare/workers-types`). Importing a Node API from shared code fails the typecheck.
 - **Contracts first:** the zod schemas in `packages/contracts` are the source of truth. `openapi.json` is generated from them and must be committed up to date. Never break `/api/v1` or the discovery format (`discoveryVersion`); breaking changes need a new API version.
-- **Runtime-agnostic core:** everything that differs between Cloudflare and Docker goes behind `Platform { db, blobs, config }` in `apps/api/src/platform.ts`:
-  - `db`: Drizzle on D1 (Workers) or `better-sqlite3` at `/data/db.sqlite` (Node). Same migrations; Node applies them on start, Cloudflare with `wrangler d1 migrations apply` in the deploy script.
-  - `blobs` (`BlobStore`: `head/get/put/delete`, streaming): R2 or `/data/blobs/<sha256[0..2]>/<sha256>`.
+- **Runtime-agnostic core:** everything that differs between Cloudflare and Docker goes behind `Platform { db, blobs, config }` (`apps/api/src/platform/types.ts`), resolved per request from the runtime's bindings and read in handlers as `c.var.platform`:
+  - `db`: Drizzle on D1 (Workers) or libSQL on a local SQLite file, `/data/db.sqlite` (Node). Both are async and support `batch()`, the only way to write atomically on D1, so atomic writes use `db.batch()` and never interactive transactions. Same migrations; Node applies them on start, Cloudflare with `wrangler d1 migrations apply` in the deploy script.
+  - `blobs` (`BlobStore`: `head/get/put/delete`, streaming, keys must be lowercase sha256 hex): R2 or `/data/blobs/<sha256[0..2]>/<sha256>`. Every adapter runs the shared contract test in `test/blob-store.ts`.
   - `config`: `PUBLIC_URL`, `SESSION_SECRET`, `JWT_SECRET` from env/secrets.
 - **Workers constraints apply to shared code:** no Node APIs outside the Node entry and adapters; password hashing is PBKDF2-SHA256 via WebCrypto (100k iterations) in both runtimes; uploads are one file per request (100 MB body limit); never unzip on the server.
 - **Errors** are `application/problem+json` with a stable `code`.
