@@ -33,6 +33,10 @@ export async function startSession(c: Context<AppEnv>, adminId: string) {
       expiresAt: new Date(now + SESSION_TTL_MS),
       lastUsedAt: new Date(now),
     }),
+    db
+      .update(schema.admins)
+      .set({ lastSeenAt: new Date(now) })
+      .where(eq(schema.admins.id, adminId)),
   ]);
   setCookie(c, cookieName(c), token, {
     httpOnly: true,
@@ -62,10 +66,16 @@ export async function readSession(c: Context<AppEnv>): Promise<Admin | null> {
   if (!row) return null;
 
   if (now - row.lastUsedAt.getTime() > REFRESH_AFTER_MS) {
-    await db
-      .update(schema.adminSessions)
-      .set({ lastUsedAt: new Date(now), expiresAt: new Date(now + SESSION_TTL_MS) })
-      .where(eq(schema.adminSessions.id, id));
+    await db.batch([
+      db
+        .update(schema.adminSessions)
+        .set({ lastUsedAt: new Date(now), expiresAt: new Date(now + SESSION_TTL_MS) })
+        .where(eq(schema.adminSessions.id, id)),
+      db
+        .update(schema.admins)
+        .set({ lastSeenAt: new Date(now) })
+        .where(eq(schema.admins.id, row.admin.id)),
+    ]);
     setCookie(c, cookieName(c), token, {
       httpOnly: true,
       secure: isHttps(c),

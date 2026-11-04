@@ -29,6 +29,7 @@ describe("admin setup", () => {
 
     const [admin] = await platform.db.select().from(schema.admins);
     expect(admin?.passwordHash).toMatch(/^pbkdf2-sha256\$/);
+    expect(admin?.lastSeenAt).toBeInstanceOf(Date);
     const [settings] = await platform.db.select().from(schema.settings);
     expect(settings?.name).toBe("Bocom");
     const log = await platform.db.select().from(schema.auditLog);

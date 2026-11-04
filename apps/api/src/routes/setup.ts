@@ -1,7 +1,7 @@
 import { getSetupStatusRoute, setupRoute } from "@bc-launcher-server/contracts";
 import { type Database, schema } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { and, eq, exists } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { Context } from "hono";
 import { hashPassword } from "../auth/password";
 import { startSession } from "../auth/sessions";
@@ -21,22 +21,22 @@ export function registerSetup(app: OpenAPIHono<AppEnv>) {
 
     const id = crypto.randomUUID();
     const passwordHash = await hashPassword(password);
-    const ownerCreated = exists(
-      db.select({ id: schema.admins.id }).from(schema.admins).where(eq(schema.admins.id, id)),
-    );
 
-    // One atomic batch. The single-owner unique index makes the insert a no-op if another setup
-    // won the race, and the settings are only renamed if this owner was inserted.
-    await db.batch([
-      db
-        .insert(schema.admins)
-        .values({ id, username, passwordHash, role: "owner" })
-        .onConflictDoNothing(),
-      db
-        .update(schema.settings)
-        .set({ name: organizationName, updatedAt: new Date() })
-        .where(and(eq(schema.settings.id, 1), ownerCreated)),
-    ]);
+    // One atomic batch. The setup lock's primary key makes a second setup fail, which rolls back
+    // the whole batch, so of two simultaneous setups only one creates its owner.
+    try {
+      await db.batch([
+        db.insert(schema.setupLock).values({ id: 1 }),
+        db.insert(schema.admins).values({ id, username, passwordHash, role: "owner" }),
+        db
+          .update(schema.settings)
+          .set({ name: organizationName, updatedAt: new Date() })
+          .where(eq(schema.settings.id, 1)),
+      ]);
+    } catch (error) {
+      if (await hasAdmins(db)) return setupCompleted(c);
+      throw error;
+    }
 
     const [owner] = await db
       .select({ id: schema.admins.id, username: schema.admins.username, role: schema.admins.role })

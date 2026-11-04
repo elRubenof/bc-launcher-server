@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
 const now = sql`(cast(unixepoch('subsec') * 1000 as integer))`;
@@ -11,7 +11,9 @@ export const settings = sqliteTable(
     id: integer("id").primaryKey(),
     name: text("name").notNull(),
     description: text("description"),
+    /** sha256 of the logo in `assets`. */
     logoBlob: text("logo_blob"),
+    /** sha256 of the icon in `assets`. */
     iconBlob: text("icon_blob"),
     discordUrl: text("discord_url"),
     webUrl: text("web_url"),
@@ -24,21 +26,38 @@ export const settings = sqliteTable(
   (table) => [check("settings_single_row", sql`${table.id} = 1`)],
 );
 
-export const admins = sqliteTable(
-  "admins",
+export const admins = sqliteTable("admins", {
+  id: text("id").primaryKey(),
+  /** Stored lowercase; unique. */
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role", { enum: ["owner", "editor"] }).notNull(),
+  /** Last sign-in or session use; `null` if the admin never signed in. */
+  lastSeenAt: timestamp("last_seen_at"),
+  createdAt: timestamp("created_at").notNull().default(now),
+  updatedAt: timestamp("updated_at").notNull().default(now),
+});
+
+/**
+ * A single row once setup is done. Setup inserts it in the same batch as the first owner, so a
+ * second setup fails on the primary key and the whole batch rolls back.
+ */
+export const setupLock = sqliteTable(
+  "setup_lock",
   {
-    id: text("id").primaryKey(),
-    /** Stored lowercase; unique. */
-    username: text("username").notNull().unique(),
-    passwordHash: text("password_hash").notNull(),
-    role: text("role", { enum: ["owner", "editor"] }).notNull(),
-    createdAt: timestamp("created_at").notNull().default(now),
-    updatedAt: timestamp("updated_at").notNull().default(now),
+    id: integer("id").primaryKey(),
+    completedAt: timestamp("completed_at").notNull().default(now),
   },
-  // There is exactly one owner. This also makes setup atomic: of two simultaneous setups,
-  // only one owner insert can succeed.
-  (table) => [uniqueIndex("admins_single_owner").on(table.role).where(sql`role = 'owner'`)],
+  (table) => [check("setup_lock_single_row", sql`${table.id} = 1`)],
 );
+
+/** Public images (organization logo and icon), stored in the BlobStore by their sha256. */
+export const assets = sqliteTable("assets", {
+  sha256: text("sha256").primaryKey(),
+  contentType: text("content_type").notNull(),
+  size: integer("size").notNull(),
+  createdAt: timestamp("created_at").notNull().default(now),
+});
 
 export const adminSessions = sqliteTable(
   "admin_sessions",
