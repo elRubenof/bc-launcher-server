@@ -31,3 +31,8 @@ jobs:
       - run: pnpm typecheck
 
       - run: pnpm test
+
+      - name: Check that openapi.json is up to date
+        run: |
+          pnpm openapi
+          git diff --exit-code packages/contracts/openapi.json
