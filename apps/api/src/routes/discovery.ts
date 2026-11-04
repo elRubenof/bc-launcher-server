@@ -1,22 +1,20 @@
 import { type DiscoveryDocument, discoveryRoute } from "@bc-launcher-server/contracts";
-import { type Database, schema } from "@bc-launcher-server/db";
+import type { Database } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { eq } from "drizzle-orm";
-import type { AppEnv } from "../platform/types";
+import type { AppEnv, Config } from "../platform/types";
+import { assetUrl, readSettings } from "../settings";
 import { API_VERSIONS, SERVER_VERSION } from "../version";
 
-async function discoveryDocument(db: Database): Promise<DiscoveryDocument> {
-  const [settings] = await db.select().from(schema.settings).where(eq(schema.settings.id, 1));
-  if (!settings) throw new Error("The settings row is missing; were the migrations applied?");
+async function discoveryDocument(db: Database, config: Config): Promise<DiscoveryDocument> {
+  const settings = await readSettings(db);
 
   return {
     discoveryVersion: 1,
     visibility: settings.visibility,
     name: settings.name,
     description: settings.description,
-    // Logo and icon uploads come with the organization settings screen.
-    logoUrl: null,
-    iconUrl: null,
+    logoUrl: assetUrl(config, settings.logoBlob),
+    iconUrl: assetUrl(config, settings.iconBlob),
     links: { discord: settings.discordUrl, web: settings.webUrl },
     serverVersion: SERVER_VERSION,
     apiVersions: API_VERSIONS,
@@ -28,7 +26,7 @@ async function discoveryDocument(db: Database): Promise<DiscoveryDocument> {
 
 export function registerDiscovery(app: OpenAPIHono<AppEnv>) {
   app.openapi(discoveryRoute, async (c) =>
-    c.json(await discoveryDocument(c.var.platform.db), 200, {
+    c.json(await discoveryDocument(c.var.platform.db, c.var.platform.config), 200, {
       "Cache-Control": "public, max-age=300",
     }),
   );

@@ -6,6 +6,7 @@ import type { AppEnv, PlatformResolver } from "./platform/types";
 import { problem } from "./problem";
 import { registerAuth } from "./routes/auth";
 import { registerDiscovery } from "./routes/discovery";
+import { registerSettings } from "./routes/settings";
 import { registerSetup } from "./routes/setup";
 
 export function createApp(resolvePlatform: PlatformResolver) {
@@ -40,6 +41,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
   registerDiscovery(app);
   registerSetup(app);
   registerAuth(app);
+  registerSettings(app);
 
   return app;
 }

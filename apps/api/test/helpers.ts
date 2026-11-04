@@ -1,4 +1,6 @@
+import { schema } from "@bc-launcher-server/db";
 import { createApp } from "../src/app";
+import { hashPassword } from "../src/auth/password";
 import { MemoryBlobStore } from "../src/platform/memory";
 import { createLibsqlDatabase } from "../src/platform/node/libsql-database";
 import { migrateLibsqlDatabase, SOURCE_MIGRATIONS_DIR } from "../src/platform/node/migrate";
@@ -54,5 +56,23 @@ export function sessionCookie(res: Response): string {
 export async function setupOwner(app: TestApp) {
   const res = await jsonRequest(app, "POST", "/api/admin/setup", OWNER);
   if (res.status !== 201) throw new Error(`Setup failed: ${res.status}`);
+  return sessionCookie(res);
+}
+
+/** Inserts an admin directly and returns its session cookie, for role tests. */
+export async function signInAs(
+  app: TestApp,
+  platform: Platform,
+  username: string,
+  role: "owner" | "editor",
+) {
+  const password = `${username}-password`;
+  await platform.db.insert(schema.admins).values({
+    id: crypto.randomUUID(),
+    username,
+    passwordHash: await hashPassword(password),
+    role,
+  });
+  const res = await jsonRequest(app, "POST", "/api/admin/auth/login", { username, password });
   return sessionCookie(res);
 }
