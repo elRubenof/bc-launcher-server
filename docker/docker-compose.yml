@@ -1,0 +1,19 @@
+# Example deployment. Put it behind a reverse proxy with TLS and set PUBLIC_URL to its public origin.
+# Secrets go in docker/.env (never committed): SESSION_SECRET and JWT_SECRET, e.g. `openssl rand -hex 32`.
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in docker/.env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in docker/.env}
+    volumes:
+      - data:/data
+
+volumes:
+  data:

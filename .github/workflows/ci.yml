@@ -36,3 +36,24 @@ jobs:
         run: |
           pnpm openapi
           git diff --exit-code packages/contracts/openapi.json
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build image
+        run: docker build -f docker/Dockerfile -t bc-launcher-server:ci .
+
+      - name: Smoke test
+        run: |
+          docker run -d --name server -p 3000:3000 \
+            -e PUBLIC_URL=http://localhost:3000 -e SESSION_SECRET=ci -e JWT_SECRET=ci \
+            bc-launcher-server:ci
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/health; then break; fi
+            sleep 1
+          done
+          curl -sf http://localhost:3000/health
+          curl -sf http://localhost:3000/.well-known/bc-launcher
+          docker logs server
