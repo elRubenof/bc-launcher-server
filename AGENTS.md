@@ -14,7 +14,7 @@ Deploy targets: **Cloudflare** (Workers + D1 + R2 + static assets) and **Docker*
 
 This repo contains **only the server**. The launcher is the separate `bc-launcher` repo (Flutter). The two talk only through the public contract (discovery, `/api/vN`, the launcher's `compat.json`), so never assume both are deployed at the same version. The cross-repo decisions are in `bc-launcher/AGENTS.md` → "Architecture decisions".
 
-- Status: **early development**. Done: both runtimes, discovery (from the organization's settings), admin setup/login/sessions/password change, and the panel shell (setup, login, home). The rest of what is described below is planned.
+- Status: **early development**. Done: both runtimes, discovery, admin setup/login/sessions, admin accounts, organization settings with logo and icon, the activity log, the panel (setup, login, home, settings) and the public download page. Instances, content, players and news are next; see "Server design" below.
 - License: GPL-3.0 (`LICENSE`).
 
 ## Commands
@@ -45,8 +45,9 @@ CI (`.github/workflows/ci.yml`) runs install (frozen lockfile), lint, typecheck,
 apps/
   api/
     src/app.ts            createApp(resolvePlatform): the runtime-agnostic Hono app (OpenAPIHono)
-    src/routes/           route handlers, one file per area (discovery, setup, auth, ...)
-    src/auth/             WebCrypto helpers, PBKDF2 passwords, admin sessions
+    src/routes/           route handlers, one file per area (discovery, setup, auth, settings,
+                          assets, admins, activity, ...)
+    src/auth/             WebCrypto helpers, PBKDF2 passwords, admin sessions, ownerOnly()
     src/middleware/       sameOrigin (CSRF) and requireAdmin for /api/admin/*
     src/platform/         Platform interface, config, in-memory BlobStore; node/ (libSQL, migrations,
                           filesystem blobs, static web) and worker/ (R2) adapters
@@ -54,7 +55,8 @@ apps/
     scripts/openapi.ts    writes packages/contracts/openapi.json
     test/                 Vitest; blob-store.ts is the shared BlobStore contract test
   web/
-    src/router.tsx        TanStack Router (code-based): /admin/setup, /admin/login, the signed-in panel
+    src/router.tsx        TanStack Router (code-based): "/" (public download page), /admin/setup,
+                          /admin/login and the signed-in panel (/admin, /admin/settings/...)
     src/routes/           pages and their pieces
     src/components/ui/    shadcn/ui-style primitives (Radix + Tailwind), themed in src/index.css
     src/i18n/             es (source of keys) and en strings, useI18n()
@@ -83,13 +85,15 @@ tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 - **Workers constraints apply to shared code:** no Node APIs outside the Node entry and adapters; password hashing is PBKDF2-SHA256 via WebCrypto (100k iterations) in both runtimes; uploads are one file per request (100 MB body limit); never unzip on the server.
 - **Migrations** are generated with `pnpm db:generate`, never hand-written, and never edited once released. Seed rows (like the `settings` row) are appended to the generated SQL.
 - **Errors** are `application/problem+json` with a stable `code` (`problem()` in `apps/api/src/problem.ts`); request validation failures are `400 validation_error`.
-- **Admin API** (`/api/admin/*`): every route needs a session except setup and login (`requireAdmin`), and every mutating request must come from the deployment's own origin (`sameOrigin`). The Vite dev proxy rewrites `Origin` so this also works on :5173.
+- **Admin API** (`/api/admin/*`): every route needs a session except setup and login (`requireAdmin`), and every mutating request must come from the deployment's own origin (`sameOrigin`). The Vite dev proxy rewrites `Origin` so this also works on :5173. Owner-only handlers start with `ownerOnly(c)`. Every change an admin makes is recorded in `audit_log` with a stable `action` code, and the panel turns each code into a sentence (`routes/settings-activity.tsx`); add both when adding an action.
 - **Panel UI:** all user-facing text goes through `useI18n().t()`, with the key added to **both** `src/i18n/es.ts` and `en.ts`. Follow the panel mockups (dark theme, colors in `src/index.css`). Accessible markup: real buttons, links and labelled inputs.
 - **Secrets:** never commit real secrets, tokens or signing keys. Never log passwords, session tokens or JWTs.
 
 ## Server design (agreed, not all implemented yet)
 
-- **Admins:** username + password (no email, usernames stored lowercase), roles `owner` / `editor`, with exactly one owner (unique partial index). The owner is created on first visit at `/admin/setup` (only works with 0 admins; the single-owner index makes it atomic; `409` afterwards). Sessions are a random token in an HttpOnly `SameSite=Strict` cookie (`__Host-` prefixed over HTTPS), stored as its sha256 in `admin_sessions`, with a 7-day sliding expiry. Changing a password ends every other session; removing an admin ends all of theirs.
+- **Admins:** username + password (no email, usernames stored lowercase), roles `owner` (everything, including admins and the organization) and `editor` (instances, content, news and players). There can be several owners. The first owner is created on first visit at `/admin/setup`: it only works with 0 admins, and it is atomic because the setup batch also inserts the single `setup_lock` row, so a second setup fails and rolls back (`409`). Owners create admins with a password they pass on, reset other admins' passwords and remove them, never their own account. Sessions are a random token in an HttpOnly `SameSite=Strict` cookie (`__Host-` prefixed over HTTPS), stored as its sha256 in `admin_sessions`, with a 7-day sliding expiry. Changing or resetting a password ends the other sessions; removing an admin ends all of theirs.
+- **Organization settings:** name, description, logo, icon, global Discord/web links, visibility and minimum launcher version, in the single `settings` row; discovery serves them. Logo and icon are PNG/JPEG/WebP/GIF up to 2 MB (type detected from the bytes, SVG refused), stored in the BlobStore and listed in `assets`, and served from `/api/v1/assets/<sha256>` as immutable. Replaced images are not deleted yet; the orphan cleanup will handle them.
+- **Public page (`/`):** the organization's name, logo and links, the official launcher downloads (GitHub Releases of `bc-launcher`) and the `bclauncher://add?server=<origin>` deep link. Same for public and private organizations.
 - **Instances:** readable, immutable `id` (`^[a-z0-9][a-z0-9-]{1,39}$`), used in URLs and as the launcher's local folder. Each has its own background and colors (never empty; created with BC Launcher's defaults), map, optional Discord/web links (falling back to the organization's), news, Minecraft version, loader + version, `access` (`everyone` | `whitelist`), `is_active` and `content_version` (0 = no content yet, hidden). The organization itself has no colors or background.
 - **Content-addressed files:** blobs are stored by sha256, never overwritten, deduplicated across instances. File policies are only `always` and `once`. Managed dirs are set per instance.
 - **Applying content:** no drafts or releases in the database. The panel uploads missing blobs first (`blobs/check` + `PUT blobs/:sha256`, hash re-checked on upload), then sends the full file list in one request with `expectedContentVersion`; the server checks every blob exists (`409` otherwise, nothing changes) and replaces the instance's files in a single transaction, `content_version + 1`. Unreferenced blobs older than 24 h are cleaned periodically (cron / timer).
