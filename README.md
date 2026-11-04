@@ -20,10 +20,11 @@ pnpm lint && pnpm typecheck && pnpm test
 Run the server locally:
 
 - **Cloudflare Worker** (local D1 and R2): copy `.dev.vars.example` to `.dev.vars`, then `pnpm dev:worker` → http://localhost:8787
-- **Node**: copy `apps/api/.env.example` to `apps/api/.env`, then `pnpm --filter @bc-launcher-server/api dev:node` → http://localhost:3000
+- **Panel with hot reload**: with the Worker running, `pnpm dev:web` → http://localhost:5173
+- **Node**: copy `apps/api/.env.example` to `apps/api/.env`, run `pnpm build:web` once, then `pnpm --filter @bc-launcher-server/api dev:node` → http://localhost:3000
 - **Docker**: create `docker/.env` with `SESSION_SECRET` and `JWT_SECRET` (e.g. `openssl rand -hex 32`), then `docker compose -f docker/docker-compose.yml up --build` → http://localhost:3000
 
-Check it with `curl http://localhost:3000/health` and `curl http://localhost:3000/.well-known/bc-launcher`.
+Open `/admin` to create the owner account on first visit. Check the API with `curl http://localhost:3000/health` and `curl http://localhost:3000/.well-known/bc-launcher`.
 
 ## License
 
