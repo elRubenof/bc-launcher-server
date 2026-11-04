@@ -56,4 +56,5 @@ jobs:
           done
           curl -sf http://localhost:3000/health
           curl -sf http://localhost:3000/.well-known/bc-launcher
+          curl -sf http://localhost:3000/admin/login | grep -q '<div id="root">'
           docker logs server
