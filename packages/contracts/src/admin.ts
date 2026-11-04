@@ -62,3 +62,53 @@ export const setupRoute = createRoute({
     409: problemResponse("Setup was already completed (`setup_completed`)."),
   },
 });
+
+export const LoginRequest = z
+  .object({
+    username: z.string().trim().toLowerCase().min(1).max(64),
+    password: z.string().min(1).max(256),
+  })
+  .openapi("LoginRequest");
+
+export const loginRoute = createRoute({
+  method: "post",
+  path: "/api/admin/auth/login",
+  summary: "Sign in with username and password",
+  tags: ["Admin"],
+  request: {
+    body: { required: true, content: { "application/json": { schema: LoginRequest } } },
+  },
+  responses: {
+    200: {
+      description: "Signed in; the session cookie is set.",
+      content: { "application/json": { schema: Admin } },
+    },
+    400: problemResponse("Invalid request."),
+    401: problemResponse("Wrong username or password (`invalid_credentials`)."),
+  },
+});
+
+export const logoutRoute = createRoute({
+  method: "post",
+  path: "/api/admin/auth/logout",
+  summary: "Sign out and end the current session",
+  tags: ["Admin"],
+  responses: {
+    204: { description: "Signed out." },
+    401: problemResponse("Not signed in (`unauthenticated`)."),
+  },
+});
+
+export const meRoute = createRoute({
+  method: "get",
+  path: "/api/admin/auth/me",
+  summary: "The signed-in admin",
+  tags: ["Admin"],
+  responses: {
+    200: {
+      description: "The signed-in admin.",
+      content: { "application/json": { schema: Admin } },
+    },
+    401: problemResponse("Not signed in (`unauthenticated`)."),
+  },
+});

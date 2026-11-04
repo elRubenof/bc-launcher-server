@@ -203,6 +203,25 @@
           "username",
           "password"
         ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
       }
     },
     "parameters": {}
@@ -286,6 +305,109 @@
           },
           "409": {
             "description": "Setup was already completed (`setup_completed`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/auth/login": {
+      "post": {
+        "summary": "Sign in with username and password",
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; the session cookie is set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Admin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong username or password (`invalid_credentials`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/auth/logout": {
+      "post": {
+        "summary": "Sign out and end the current session",
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Signed out."
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/auth/me": {
+      "get": {
+        "summary": "The signed-in admin",
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "The signed-in admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Admin"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
             "content": {
               "application/problem+json": {
                 "schema": {

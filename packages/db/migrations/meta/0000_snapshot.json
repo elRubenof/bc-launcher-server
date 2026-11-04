@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "44eb2525-ff54-4fc6-bfaf-07942e33bcfd",
+  "id": "68ad162f-a61f-4581-8e2c-b80a22a9d182",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "admin_sessions": {
@@ -48,7 +48,9 @@
       "indexes": {
         "admin_sessions_admin_id": {
           "name": "admin_sessions_admin_id",
-          "columns": ["admin_id"],
+          "columns": [
+            "admin_id"
+          ],
           "isUnique": false
         }
       },
@@ -57,8 +59,12 @@
           "name": "admin_sessions_admin_id_admins_id_fk",
           "tableFrom": "admin_sessions",
           "tableTo": "admins",
-          "columnsFrom": ["admin_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "admin_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -118,8 +124,18 @@
       "indexes": {
         "admins_username_unique": {
           "name": "admins_username_unique",
-          "columns": ["username"],
+          "columns": [
+            "username"
+          ],
           "isUnique": true
+        },
+        "admins_single_owner": {
+          "name": "admins_single_owner",
+          "columns": [
+            "role"
+          ],
+          "isUnique": true,
+          "where": "role = 'owner'"
         }
       },
       "foreignKeys": {},
@@ -177,7 +193,9 @@
       "indexes": {
         "audit_log_created_at": {
           "name": "audit_log_created_at",
-          "columns": ["created_at"],
+          "columns": [
+            "created_at"
+          ],
           "isUnique": false
         }
       },
@@ -186,8 +204,12 @@
           "name": "audit_log_admin_id_admins_id_fk",
           "tableFrom": "audit_log",
           "tableTo": "admins",
-          "columnsFrom": ["admin_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "admin_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }

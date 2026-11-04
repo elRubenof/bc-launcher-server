@@ -1,8 +1,10 @@
 import { getSetupStatusRoute, setupRoute } from "@bc-launcher-server/contracts";
-import { schema } from "@bc-launcher-server/db";
+import { type Database, schema } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, exists } from "drizzle-orm";
+import type { Context } from "hono";
 import { hashPassword } from "../auth/password";
+import { startSession } from "../auth/sessions";
 import type { AppEnv } from "../platform/types";
 import { problem } from "../problem";
 
@@ -19,22 +21,21 @@ export function registerSetup(app: OpenAPIHono<AppEnv>) {
 
     const id = crypto.randomUUID();
     const passwordHash = await hashPassword(password);
+    const ownerCreated = exists(
+      db.select({ id: schema.admins.id }).from(schema.admins).where(eq(schema.admins.id, id)),
+    );
 
-    // One atomic batch: the owner is only inserted while there are no admins, so of two
-    // simultaneous setups only one wins. The other statements only apply if this one did.
+    // One atomic batch. The single-owner unique index makes the insert a no-op if another setup
+    // won the race, and the settings are only renamed if this owner was inserted.
     await db.batch([
-      db.run(sql`
-        insert into admins (id, username, password_hash, role)
-        select ${id}, ${username}, ${passwordHash}, 'owner'
-        where not exists (select 1 from admins)`),
-      db.run(sql`
-        update settings
-        set name = ${organizationName}, updated_at = cast(unixepoch('subsec') * 1000 as integer)
-        where id = 1 and exists (select 1 from admins where id = ${id})`),
-      db.run(sql`
-        insert into audit_log (admin_id, action, target, details)
-        select ${id}, 'admin.created', ${id}, ${JSON.stringify({ username, role: "owner", setup: true })}
-        where exists (select 1 from admins where id = ${id})`),
+      db
+        .insert(schema.admins)
+        .values({ id, username, passwordHash, role: "owner" })
+        .onConflictDoNothing(),
+      db
+        .update(schema.settings)
+        .set({ name: organizationName, updatedAt: new Date() })
+        .where(and(eq(schema.settings.id, 1), ownerCreated)),
     ]);
 
     const [owner] = await db
@@ -43,15 +44,22 @@ export function registerSetup(app: OpenAPIHono<AppEnv>) {
       .where(eq(schema.admins.id, id));
     if (!owner) return setupCompleted(c);
 
+    await db.insert(schema.auditLog).values({
+      adminId: owner.id,
+      action: "admin.created",
+      target: owner.id,
+      details: { username, role: "owner", setup: true },
+    });
+    await startSession(c, owner.id);
     return c.json(owner, 201);
   });
 }
 
-async function hasAdmins(db: AppEnv["Variables"]["platform"]["db"]) {
+async function hasAdmins(db: Database) {
   const [row] = await db.select({ id: schema.admins.id }).from(schema.admins).limit(1);
   return row !== undefined;
 }
 
-function setupCompleted(c: Parameters<typeof problem>[0]) {
+function setupCompleted(c: Context<AppEnv>) {
   return problem(c, 409, "setup_completed", "Setup was already completed");
 }

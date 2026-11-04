@@ -40,3 +40,19 @@ export function jsonRequest(
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 }
+
+export const OWNER = { organizationName: "Bocom", username: "owner", password: "owner-password" };
+
+/** Reads the session cookie (`name=value`) from a response. */
+export function sessionCookie(res: Response): string {
+  const cookie = res.headers.get("set-cookie")?.split(";")[0];
+  if (!cookie) throw new Error("No session cookie in the response");
+  return cookie;
+}
+
+/** Runs setup and returns the owner's session cookie. */
+export async function setupOwner(app: TestApp) {
+  const res = await jsonRequest(app, "POST", "/api/admin/setup", OWNER);
+  if (res.status !== 201) throw new Error(`Setup failed: ${res.status}`);
+  return sessionCookie(res);
+}

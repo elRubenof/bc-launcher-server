@@ -1,8 +1,10 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { sql } from "drizzle-orm";
+import { requireAdmin } from "./middleware/admin";
 import { sameOrigin } from "./middleware/origin";
 import type { AppEnv, PlatformResolver } from "./platform/types";
 import { problem } from "./problem";
+import { registerAuth } from "./routes/auth";
 import { registerDiscovery } from "./routes/discovery";
 import { registerSetup } from "./routes/setup";
 
@@ -23,7 +25,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
     await next();
   });
 
-  app.use("/api/admin/*", sameOrigin);
+  app.use("/api/admin/*", sameOrigin, requireAdmin);
 
   app.get("/health", async (c) => {
     try {
@@ -37,6 +39,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
 
   registerDiscovery(app);
   registerSetup(app);
+  registerAuth(app);
 
   return app;
 }

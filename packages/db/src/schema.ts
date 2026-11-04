@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
 const now = sql`(cast(unixepoch('subsec') * 1000 as integer))`;
@@ -24,15 +24,21 @@ export const settings = sqliteTable(
   (table) => [check("settings_single_row", sql`${table.id} = 1`)],
 );
 
-export const admins = sqliteTable("admins", {
-  id: text("id").primaryKey(),
-  /** Stored lowercase; unique. */
-  username: text("username").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  role: text("role", { enum: ["owner", "editor"] }).notNull(),
-  createdAt: timestamp("created_at").notNull().default(now),
-  updatedAt: timestamp("updated_at").notNull().default(now),
-});
+export const admins = sqliteTable(
+  "admins",
+  {
+    id: text("id").primaryKey(),
+    /** Stored lowercase; unique. */
+    username: text("username").notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    role: text("role", { enum: ["owner", "editor"] }).notNull(),
+    createdAt: timestamp("created_at").notNull().default(now),
+    updatedAt: timestamp("updated_at").notNull().default(now),
+  },
+  // There is exactly one owner. This also makes setup atomic: of two simultaneous setups,
+  // only one owner insert can succeed.
+  (table) => [uniqueIndex("admins_single_owner").on(table.role).where(sql`role = 'owner'`)],
+);
 
 export const adminSessions = sqliteTable(
   "admin_sessions",

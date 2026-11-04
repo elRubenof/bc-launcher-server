@@ -18,6 +18,7 @@ CREATE TABLE `admins` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `admins_username_unique` ON `admins` (`username`);--> statement-breakpoint
+CREATE UNIQUE INDEX `admins_single_owner` ON `admins` (`role`) WHERE role = 'owner';--> statement-breakpoint
 CREATE TABLE `audit_log` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`admin_id` text,
