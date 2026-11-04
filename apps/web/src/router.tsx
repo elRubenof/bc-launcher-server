@@ -11,6 +11,7 @@ import { meQuery, setupStatusQuery } from "./lib/queries";
 import { HomePage } from "./routes/home";
 import { LoginPage } from "./routes/login";
 import { PanelLayout } from "./routes/panel-layout";
+import { PublicPage } from "./routes/public-page";
 import { SettingsActivityPage } from "./routes/settings-activity";
 import { SettingsAdminsPage } from "./routes/settings-admins";
 import { SettingsLayout } from "./routes/settings-layout";
@@ -39,13 +40,11 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: Outlet,
 });
 
-// The public download page comes later; until then "/" opens the panel.
+/** The organization's public download page. */
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  beforeLoad: () => {
-    throw redirect({ to: "/admin" });
-  },
+  component: PublicPage,
 });
 
 const setupRoute = createRoute({

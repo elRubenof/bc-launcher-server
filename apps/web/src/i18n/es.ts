@@ -147,6 +147,23 @@ export const es = {
   "field.minLauncherVersion": "versión mínima",
   "visibility.public": "pública",
   "visibility.private": "privada",
+  "public.links": "Enlaces",
+  "public.open": "Abrir en BC Launcher",
+  "public.openHint": "¿No pasa nada al pulsarlo? Instala primero el launcher.",
+  "public.pitch":
+    "Añádela a BC Launcher y te aparecerán solas todas las series a las que tengas acceso.",
+  "public.download": "Descarga BC Launcher",
+  "public.yourSystem": "Tu sistema",
+  "public.latestVersion": "Última versión",
+  "public.steps": "Cómo empezar",
+  "public.step1": "Instala el launcher",
+  "public.step1Text": "Descárgalo para tu sistema e instálalo.",
+  "public.step2": "Inicia sesión con Microsoft",
+  "public.step2Text": "Con la cuenta con la que tienes Minecraft.",
+  "public.step3": "Vuelve y pulsa «Abrir en BC Launcher»",
+  "public.step3Text": "O añade la organización a mano con la dirección {host}.",
+  "public.footer": "Servidor de {name} para BC Launcher",
+  "public.adminPanel": "Panel de administración",
 } as const;
 
 export type MessageKey = keyof typeof es;
