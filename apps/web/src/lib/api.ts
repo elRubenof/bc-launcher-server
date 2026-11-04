@@ -12,14 +12,16 @@ export class ApiError extends Error {
   }
 }
 
+/** Calls the API. A `Blob`/`File` body is sent raw with its own type; anything else as JSON. */
 export async function apiRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const raw = body instanceof Blob;
   const res = await fetch(path, {
     method,
     credentials: "same-origin",
     // The panel must see its own changes right away, even on publicly cached responses (discovery).
     cache: "no-cache",
-    headers: body === undefined ? {} : { "Content-Type": "application/json" },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    headers: body === undefined ? {} : { "Content-Type": raw ? body.type : "application/json" },
+    ...(body === undefined ? {} : { body: raw ? body : JSON.stringify(body) }),
   });
 
   if (!res.ok) {

@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { KeyRoundIcon } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { FormField } from "@/components/form-field";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { ApiError } from "@/lib/api";
 import { api } from "@/lib/queries";
 import { MIN_PASSWORD_LENGTH } from "@/lib/validation";
 
-export function ChangePasswordDialog() {
+export function ChangePasswordDialog({ trigger }: { trigger?: ReactNode }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -59,10 +59,12 @@ export function ChangePasswordDialog() {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="justify-start">
-          <KeyRoundIcon aria-hidden="true" />
-          {t("account.changePassword")}
-        </Button>
+        {trigger ?? (
+          <Button variant="ghost" className="justify-start">
+            <KeyRoundIcon aria-hidden="true" />
+            {t("account.changePassword")}
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent closeLabel={t("common.close")}>
         <div className="flex flex-col gap-1.5 pr-6">

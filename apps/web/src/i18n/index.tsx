@@ -5,6 +5,8 @@ import { es, type MessageKey, type Messages } from "./es";
 export const LANGUAGES = ["es", "en"] as const;
 export type Language = (typeof LANGUAGES)[number];
 
+export type { MessageKey };
+
 const messages: Record<Language, Messages> = { es, en };
 const STORAGE_KEY = "bcls.language";
 

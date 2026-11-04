@@ -11,6 +11,10 @@ import { meQuery, setupStatusQuery } from "./lib/queries";
 import { HomePage } from "./routes/home";
 import { LoginPage } from "./routes/login";
 import { PanelLayout } from "./routes/panel-layout";
+import { SettingsActivityPage } from "./routes/settings-activity";
+import { SettingsAdminsPage } from "./routes/settings-admins";
+import { SettingsLayout } from "./routes/settings-layout";
+import { SettingsOrganizationPage } from "./routes/settings-organization";
 import { SetupPage } from "./routes/setup";
 
 export interface RouterContext {
@@ -86,11 +90,42 @@ const homeRoute = createRoute({
   component: HomePage,
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => panelRoute,
+  path: "/admin/settings",
+  component: SettingsLayout,
+});
+
+const settingsOrganizationRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/",
+  component: SettingsOrganizationPage,
+});
+
+const settingsAdminsRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/admins",
+  component: SettingsAdminsPage,
+});
+
+const settingsActivityRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/activity",
+  component: SettingsActivityPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   setupRoute,
   loginRoute,
-  panelRoute.addChildren([homeRoute]),
+  panelRoute.addChildren([
+    homeRoute,
+    settingsRoute.addChildren([
+      settingsOrganizationRoute,
+      settingsAdminsRoute,
+      settingsActivityRoute,
+    ]),
+  ]),
 ]);
 
 export function createAppRouter(queryClient: QueryClient) {

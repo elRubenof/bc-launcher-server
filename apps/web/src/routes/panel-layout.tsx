@@ -8,7 +8,10 @@ import { useI18n } from "@/i18n";
 import { api, meQuery, organizationQuery } from "@/lib/queries";
 import { ChangePasswordDialog } from "./change-password-dialog";
 
-const NAV_ITEMS = [{ to: "/admin", labelKey: "nav.home" }] as const;
+const NAV_ITEMS = [
+  { to: "/admin", labelKey: "nav.home", exact: true },
+  { to: "/admin/settings", labelKey: "nav.settings", exact: false },
+] as const;
 
 export function PanelLayout() {
   return (
@@ -58,7 +61,7 @@ function Sidebar() {
           <li key={item.to}>
             <Link
               to={item.to}
-              activeOptions={{ exact: true }}
+              activeOptions={{ exact: item.exact }}
               className="flex min-h-10 items-center gap-2.5 rounded-md px-3 font-medium text-subtle-foreground no-underline hover:bg-accent hover:text-foreground data-[status=active]:bg-secondary data-[status=active]:font-semibold data-[status=active]:text-foreground"
             >
               {t(item.labelKey)}
