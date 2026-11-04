@@ -32,6 +32,8 @@ jobs:
 
       - run: pnpm test
 
+      - run: pnpm build:web
+
       - name: Check that openapi.json is up to date
         run: |
           pnpm openapi
