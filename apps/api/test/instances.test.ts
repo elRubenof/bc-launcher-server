@@ -28,7 +28,6 @@ async function setup() {
 const UPDATE = {
   name: "Serie T3 (final)",
   description: null,
-  mapUrl: "https://map.example/t3",
   discordUrl: null,
   webUrl: "https://bocom.example",
   serverAddress: "play.bocom.example:25565",
@@ -123,15 +122,7 @@ describe("instances", () => {
       .from(schema.auditLog)
       .where(eq(schema.auditLog.action, "instance.updated"));
     expect(audit?.details).toEqual({
-      changed: [
-        "name",
-        "description",
-        "mapUrl",
-        "webUrl",
-        "serverAddress",
-        "recommendedRamMb",
-        "isActive",
-      ],
+      changed: ["name", "description", "webUrl", "serverAddress", "recommendedRamMb", "isActive"],
     });
   });
 
@@ -140,7 +131,7 @@ describe("instances", () => {
     await request("POST", "/api/admin/instances", NEW_INSTANCE);
 
     for (const bad of [
-      { mapUrl: "javascript:alert(1)" },
+      { webUrl: "javascript:alert(1)" },
       { serverAddress: "play.example:25565:1" },
       { recommendedRamMb: 512 },
     ]) {
@@ -167,6 +158,67 @@ describe("instances", () => {
       colors: { ...colors, text: "white" },
     });
     expect(bad.status).toBe(400);
+  });
+
+  it("replaces the web tabs and logs them", async () => {
+    const { platform, request } = await setup();
+    const created = (await (
+      await request("POST", "/api/admin/instances", NEW_INSTANCE)
+    ).json()) as Instance;
+    expect(created.tabs).toEqual([]);
+    const tabs = [
+      { label: "Mapa", url: "https://map.example/t3", icon: "map", openIn: "launcher" },
+      {
+        label: "Clasificación",
+        url: "https://rank.example/player/{uuid}?name={name}",
+        icon: "trophy",
+        openIn: "browser",
+      },
+    ];
+
+    const res = await request("PUT", "/api/admin/instances/serie-t3/tabs", { tabs });
+
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as Instance).tabs).toEqual(tabs);
+    const again = await request("PUT", "/api/admin/instances/serie-t3/tabs", { tabs });
+    expect(again.status).toBe(200);
+    const audits = await platform.db
+      .select()
+      .from(schema.auditLog)
+      .where(eq(schema.auditLog.action, "instance.tabs_changed"));
+    expect(audits.map((audit) => audit.details)).toEqual([{ tabs: ["Mapa", "Clasificación"] }]);
+
+    const cleared = await request("PUT", "/api/admin/instances/serie-t3/tabs", { tabs: [] });
+    expect(((await cleared.json()) as Instance).tabs).toEqual([]);
+  });
+
+  it("validates the web tabs", async () => {
+    const { request } = await setup();
+    await request("POST", "/api/admin/instances", NEW_INSTANCE);
+    const tab = { label: "Mapa", url: "https://map.example", icon: "map", openIn: "launcher" };
+
+    for (const bad of [
+      { url: "javascript:alert(1)" },
+      { url: "ftp://map.example" },
+      { url: "map.example" },
+      { url: "https://map.example/{player}" },
+      { url: "https://map.example/{uuid" },
+      { label: " " },
+      { label: "x".repeat(25) },
+      { icon: "rocket" },
+      { openIn: "window" },
+    ]) {
+      const res = await request("PUT", "/api/admin/instances/serie-t3/tabs", {
+        tabs: [{ ...tab, ...bad }],
+      });
+      expect(res.status, JSON.stringify(bad)).toBe(400);
+    }
+    const six = await request("PUT", "/api/admin/instances/serie-t3/tabs", {
+      tabs: Array.from({ length: 6 }, () => tab),
+    });
+    expect(six.status).toBe(400);
+    const unknown = await request("PUT", "/api/admin/instances/nope/tabs", { tabs: [tab] });
+    expect(unknown.status).toBe(404);
   });
 
   it("uploads an icon and a background, and resets the background", async () => {

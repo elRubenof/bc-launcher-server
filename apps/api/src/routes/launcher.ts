@@ -32,7 +32,7 @@ function toLauncherInstance(
     iconUrl: assetUrl(config, row.iconBlob),
     backgroundUrl: assetUrl(config, row.backgroundBlob) as string,
     colors: row.colors,
-    mapUrl: row.mapUrl,
+    tabs: row.tabs as LauncherInstance["tabs"],
     discordUrl: row.discordUrl ?? settings.discordUrl,
     webUrl: row.webUrl ?? settings.webUrl,
     minecraft: { version: row.mcVersion },

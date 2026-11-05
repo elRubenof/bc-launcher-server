@@ -71,7 +71,8 @@ function toInstance(row: SelectedInstance, config: Config): Instance {
     iconUrl: assetUrl(config, instance.iconBlob),
     backgroundUrl: assetUrl(config, instance.backgroundBlob) as string,
     colors: instance.colors,
-    mapUrl: instance.mapUrl,
+    // Written only through the contracts' `WebTab`, so the icons are known ones.
+    tabs: instance.tabs as Instance["tabs"],
     discordUrl: instance.discordUrl,
     webUrl: instance.webUrl,
     serverAddress: instance.serverAddress,

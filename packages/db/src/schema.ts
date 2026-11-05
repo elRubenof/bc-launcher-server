@@ -97,6 +97,15 @@ export type InstanceColors = {
   text: string;
 };
 
+/** A web page shown as a tab in the launcher (validated by the contracts' `WebTab`). */
+export type WebTab = {
+  label: string;
+  /** May contain `{uuid}` and `{name}`, filled in by the launcher with the player's. */
+  url: string;
+  icon: string;
+  openIn: "launcher" | "browser";
+};
+
 /** A series, event or server: what players see and play in the launcher. */
 export const instances = sqliteTable(
   "instances",
@@ -111,7 +120,8 @@ export const instances = sqliteTable(
       .notNull()
       .references(() => blobs.sha256),
     colors: text("colors", { mode: "json" }).$type<InstanceColors>().notNull(),
-    mapUrl: text("map_url"),
+    /** The launcher's web tabs, in order (the map, a ranking…), between Home and Settings. */
+    tabs: text("tabs", { mode: "json" }).$type<WebTab[]>().notNull().default([]),
     /** Own links; when null the API falls back to the organization's. */
     discordUrl: text("discord_url"),
     webUrl: text("web_url"),

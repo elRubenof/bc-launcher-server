@@ -1278,11 +1278,11 @@
           "colors": {
             "$ref": "#/components/schemas/InstanceColors"
           },
-          "mapUrl": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "tabs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebTab"
+            }
           },
           "discordUrl": {
             "type": [
@@ -1407,7 +1407,7 @@
           "iconUrl",
           "backgroundUrl",
           "colors",
-          "mapUrl",
+          "tabs",
           "discordUrl",
           "webUrl",
           "serverAddress",
@@ -1451,6 +1451,49 @@
           "primaryDark",
           "background",
           "text"
+        ]
+      },
+      "WebTab": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "An http(s) URL. `{uuid}` and `{name}` are placeholders the launcher replaces with the signed-in player's uuid (lowercase with dashes) and Minecraft name."
+          },
+          "icon": {
+            "type": "string",
+            "enum": [
+              "map",
+              "trophy",
+              "calendar",
+              "book",
+              "chart",
+              "live",
+              "users",
+              "list",
+              "form",
+              "globe"
+            ]
+          },
+          "openIn": {
+            "type": "string",
+            "enum": [
+              "launcher",
+              "browser"
+            ]
+          }
+        },
+        "required": [
+          "label",
+          "url",
+          "icon",
+          "openIn"
         ]
       },
       "CreateInstance": {
@@ -1520,14 +1563,6 @@
             ],
             "maxLength": 500
           },
-          "mapUrl": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "maxLength": 500,
-            "format": "uri"
-          },
           "discordUrl": {
             "type": [
               "string",
@@ -1566,7 +1601,6 @@
         "required": [
           "name",
           "description",
-          "mapUrl",
           "discordUrl",
           "webUrl",
           "serverAddress",
@@ -1583,6 +1617,21 @@
         },
         "required": [
           "colors"
+        ]
+      },
+      "UpdateInstanceTabs": {
+        "type": "object",
+        "properties": {
+          "tabs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebTab"
+            },
+            "maxItems": 5
+          }
+        },
+        "required": [
+          "tabs"
         ]
       },
       "CheckBlobsResult": {
@@ -1825,11 +1874,11 @@
           "colors": {
             "$ref": "#/components/schemas/InstanceColors"
           },
-          "mapUrl": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "tabs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebTab"
+            }
           },
           "discordUrl": {
             "type": [
@@ -1902,7 +1951,7 @@
           "iconUrl",
           "backgroundUrl",
           "colors",
-          "mapUrl",
+          "tabs",
           "discordUrl",
           "webUrl",
           "minecraft",
@@ -4741,6 +4790,78 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateInstanceAppearance"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated instance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Instance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such instance (`not_found`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/instances/{id}/tabs": {
+      "put": {
+        "summary": "Replace an instance's web tabs",
+        "description": "The full list, in the order the launcher shows them (up to 5).",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,39}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInstanceTabs"
               }
             }
           }

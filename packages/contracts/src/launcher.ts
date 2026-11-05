@@ -1,7 +1,7 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import { Sha256 } from "./blobs";
 import { FilePolicy } from "./content";
-import { InstanceColors, LOADERS } from "./instances";
+import { InstanceColors, LOADERS, WebTab } from "./instances";
 import { playerAuth, playerAuthResponses } from "./player-auth";
 import { problemResponse } from "./problem";
 
@@ -19,7 +19,11 @@ export const LauncherInstance = z
     iconUrl: z.url().nullable(),
     backgroundUrl: z.url(),
     colors: InstanceColors,
-    mapUrl: z.string().nullable(),
+    /**
+     * Web tabs between Home and Settings, in order. Replace `{uuid}` and `{name}` in each URL with
+     * the player's before opening it.
+     */
+    tabs: z.array(WebTab),
     discordUrl: z.string().nullable(),
     webUrl: z.string().nullable(),
     minecraft: z.object({ version: z.string() }),

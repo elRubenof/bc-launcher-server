@@ -11,6 +11,7 @@ import {
   MAX_IMAGE_BYTES,
   updateInstanceAppearanceRoute,
   updateInstanceRoute,
+  updateInstanceTabsRoute,
   uploadInstanceImageRoute,
 } from "@bc-launcher-server/contracts";
 import { schema } from "@bc-launcher-server/db";
@@ -151,6 +152,31 @@ export function registerInstances(app: OpenAPIHono<AppEnv>) {
           action: "instance.colors_changed",
           target: id,
           details: { from: before.colors, to: colors },
+        }),
+      ]);
+    }
+    return c.json(await readWritten(c, id), 200);
+  });
+
+  // Before the image routes: `/{id}/{kind}` also matches `/{id}/tabs`.
+  app.openapi(updateInstanceTabsRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const { tabs } = c.req.valid("json");
+    const { db } = c.var.platform;
+    const [before] = await db.select().from(schema.instances).where(eq(schema.instances.id, id));
+    if (!before) return notFound(c);
+
+    if (JSON.stringify(tabs) !== JSON.stringify(before.tabs)) {
+      await db.batch([
+        db
+          .update(schema.instances)
+          .set({ tabs, updatedAt: new Date() })
+          .where(eq(schema.instances.id, id)),
+        db.insert(schema.auditLog).values({
+          adminId: c.var.admin.id,
+          action: "instance.tabs_changed",
+          target: id,
+          details: { tabs: tabs.map((tab) => tab.label) },
         }),
       ]);
     }

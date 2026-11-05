@@ -50,6 +50,13 @@
       "when": 1793875143360,
       "tag": "0006_drop_organization_icon",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793891637678,
+      "tag": "0007_web_tabs",
+      "breakpoints": true
     }
   ]
 }

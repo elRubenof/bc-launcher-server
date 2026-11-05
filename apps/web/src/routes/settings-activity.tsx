@@ -207,6 +207,16 @@ export function describe(
           .join(" · "),
       };
     }
+    case "instance.tabs_changed": {
+      const tabs = Array.isArray(details.tabs) ? details.tabs.map(String) : [];
+      return {
+        text: t("action.instance.tabs_changed", { instance }),
+        detail:
+          tabs.length > 0
+            ? t("action.instance.tabs_changed.detail", { tabs: tabs.join(", ") })
+            : t("action.instance.tabs_changed.none"),
+      };
+    }
     case "instance.created":
     case "instance.colors_changed":
     case "instance.icon_changed":

@@ -32,7 +32,6 @@ const SERVER_ADDRESS = /^[A-Za-z0-9.-]{1,253}(:\d{1,5})?$/;
 interface FormState {
   name: string;
   description: string;
-  mapUrl: string;
   discordUrl: string;
   webUrl: string;
   serverAddress: string;
@@ -43,7 +42,6 @@ interface FormState {
 const toForm = (instance: Instance): FormState => ({
   name: instance.name,
   description: instance.description ?? "",
-  mapUrl: instance.mapUrl ?? "",
   discordUrl: instance.discordUrl ?? "",
   webUrl: instance.webUrl ?? "",
   serverAddress: instance.serverAddress ?? "",
@@ -91,7 +89,7 @@ function GeneralForm({ instance }: { instance: Instance }) {
     event.preventDefault();
     const found: typeof errors = {};
     if (!form.name.trim()) found.name = t("instances.nameRequired");
-    for (const key of ["mapUrl", "discordUrl", "webUrl"] as const) {
+    for (const key of ["discordUrl", "webUrl"] as const) {
       if (form[key].trim() && !isHttpUrl(form[key].trim())) found[key] = t("org.invalidUrl");
     }
     if (form.serverAddress.trim() && !SERVER_ADDRESS.test(form.serverAddress.trim())) {
@@ -102,7 +100,6 @@ function GeneralForm({ instance }: { instance: Instance }) {
     save.mutate({
       name: form.name.trim(),
       description: orNull(form.description),
-      mapUrl: orNull(form.mapUrl),
       discordUrl: orNull(form.discordUrl),
       webUrl: orNull(form.webUrl),
       serverAddress: orNull(form.serverAddress),
@@ -149,15 +146,6 @@ function GeneralForm({ instance }: { instance: Instance }) {
 
         <Card className="flex flex-col gap-4 p-[22px]">
           <h2 className="m-0 text-base font-semibold">{t("instance.links")}</h2>
-          <FormField
-            label={t("instance.map")}
-            type="url"
-            placeholder="https://…"
-            hint={t("instance.mapHint")}
-            value={form.mapUrl}
-            error={errors.mapUrl}
-            onChange={(event) => set("mapUrl", event.target.value)}
-          />
           <FormField
             label={t("org.discord")}
             type="url"

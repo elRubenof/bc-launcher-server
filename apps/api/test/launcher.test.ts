@@ -68,7 +68,6 @@ describe("launcher API", () => {
     await request("PUT", "/api/admin/instances/serie-t3", {
       name: "Serie T3",
       description: null,
-      mapUrl: null,
       discordUrl: null,
       webUrl: null,
       serverAddress: null,
@@ -153,13 +152,22 @@ describe("launcher API", () => {
     await request("PUT", "/api/admin/instances/serie-t3", {
       name: "Serie T3",
       description: null,
-      mapUrl: null,
       discordUrl: null,
       webUrl: "https://t3.example",
       serverAddress: "play.example",
       recommendedRamMb: 6144,
       isActive: true,
     });
+    const tabs = [
+      { label: "Mapa", url: "https://map.example/t3", icon: "map", openIn: "launcher" },
+      {
+        label: "Ranking",
+        url: "https://rank.example/?p={uuid}",
+        icon: "trophy",
+        openIn: "browser",
+      },
+    ];
+    await request("PUT", "/api/admin/instances/serie-t3/tabs", { tabs });
 
     const { instances } = (await (await launcher("/api/v1/instances")).json()) as {
       instances: LauncherInstance[];
@@ -170,6 +178,7 @@ describe("launcher API", () => {
       webUrl: "https://t3.example",
       serverAddress: "play.example",
       contentVersion: 1,
+      tabs,
     });
   });
 

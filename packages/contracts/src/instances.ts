@@ -35,6 +35,61 @@ const HttpUrl = z
   .max(500)
   .nullable();
 
+export const WEB_TAB_ICONS = [
+  "map",
+  "trophy",
+  "calendar",
+  "book",
+  "chart",
+  "live",
+  "users",
+  "list",
+  "form",
+  "globe",
+] as const;
+export type WebTabIcon = (typeof WEB_TAB_ICONS)[number];
+
+export const MAX_WEB_TABS = 5;
+export const MAX_WEB_TAB_LABEL = 24;
+
+/** Fills a tab URL's `{uuid}` and `{name}` with sample values, as the launcher does with the player's. */
+export function withSamplePlayer(url: string) {
+  return url
+    .replaceAll("{uuid}", "069a79f4-44e9-4726-a5be-fca90e38aaf5")
+    .replaceAll("{name}", "Notch");
+}
+
+function isWebTabUrl(url: string) {
+  const filled = withSamplePlayer(url);
+  if (/[{}]/.test(filled)) return false;
+  try {
+    const { protocol } = new URL(filled);
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+export const WebTab = z
+  .object({
+    label: z.string().trim().min(1).max(MAX_WEB_TAB_LABEL),
+    url: z
+      .string()
+      .trim()
+      .max(500)
+      .refine(isWebTabUrl, "An http(s) URL; only {uuid} and {name} can go between braces")
+      .openapi({
+        description:
+          "An http(s) URL. `{uuid}` and `{name}` are placeholders the launcher replaces with the signed-in player's uuid (lowercase with dashes) and Minecraft name.",
+      }),
+    icon: z.enum(WEB_TAB_ICONS),
+    /** `launcher`: shown inside the tab. `browser`: opened in the system browser, the tab never becomes active. */
+    openIn: z.enum(["launcher", "browser"]),
+  })
+  .openapi("WebTab");
+
+export type WebTab = z.infer<typeof WebTab>;
+
 const InstanceIdParam = z
   .string()
   .regex(INSTANCE_ID_PATTERN)
@@ -49,7 +104,8 @@ export const Instance = z
     /** Never null: new instances get BC Launcher's default background. */
     backgroundUrl: z.url(),
     colors: InstanceColors,
-    mapUrl: z.string().nullable(),
+    /** The launcher's web tabs, in order, between Home and Settings. */
+    tabs: z.array(WebTab),
     /** The instance's own links; `null` means the launcher gets the organization's. */
     discordUrl: z.string().nullable(),
     webUrl: z.string().nullable(),
@@ -98,7 +154,6 @@ export const UpdateInstance = z
   .object({
     name: z.string().trim().min(1).max(100),
     description: z.string().trim().max(500).nullable(),
-    mapUrl: HttpUrl,
     discordUrl: HttpUrl,
     webUrl: HttpUrl,
     serverAddress: z
@@ -116,6 +171,12 @@ export type UpdateInstance = z.infer<typeof UpdateInstance>;
 export const UpdateInstanceAppearance = z
   .object({ colors: InstanceColors })
   .openapi("UpdateInstanceAppearance");
+
+export const UpdateInstanceTabs = z
+  .object({ tabs: z.array(WebTab).max(MAX_WEB_TABS) })
+  .openapi("UpdateInstanceTabs");
+
+export type UpdateInstanceTabs = z.infer<typeof UpdateInstanceTabs>;
 
 const instanceResponse = (description: string) => ({
   description,
@@ -203,6 +264,24 @@ export const updateInstanceAppearanceRoute = createRoute({
       required: true,
       content: { "application/json": { schema: UpdateInstanceAppearance } },
     },
+  },
+  responses: {
+    200: instanceResponse("The updated instance."),
+    400: problemResponse("Invalid request."),
+    401: unauthenticated,
+    404: notFound,
+  },
+});
+
+export const updateInstanceTabsRoute = createRoute({
+  method: "put",
+  path: "/api/admin/instances/{id}/tabs",
+  summary: "Replace an instance's web tabs",
+  description: `The full list, in the order the launcher shows them (up to ${MAX_WEB_TABS}).`,
+  tags: ["Admin"],
+  request: {
+    params: z.object({ id: InstanceIdParam }),
+    body: { required: true, content: { "application/json": { schema: UpdateInstanceTabs } } },
   },
   responses: {
     200: instanceResponse("The updated instance."),
