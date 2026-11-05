@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { serve } from "@hono/node-server";
 import { createApp } from "../app";
+import { cleanupOrphanBlobs } from "../cleanup";
 import { loadConfig } from "../platform/config";
 import { FsBlobStore } from "../platform/node/fs-blob-store";
 import { createLibsqlDatabase } from "../platform/node/libsql-database";
@@ -30,6 +31,18 @@ const webDir = resolve(process.env.WEB_DIR ?? SOURCE_WEB_DIR);
 if (!serveWeb(app, webDir)) {
   console.warn(`No web build at ${webDir}: serving the API only (run \`pnpm build:web\`).`);
 }
+
+// Hourly orphan blob cleanup (a cron trigger on Cloudflare), first run a minute after start.
+async function cleanup() {
+  try {
+    const { deleted } = await cleanupOrphanBlobs(platform);
+    if (deleted > 0) console.log(`Deleted ${deleted} orphan blobs`);
+  } catch (error) {
+    console.error("Orphan blob cleanup failed", error);
+  }
+}
+setTimeout(cleanup, 60_000).unref();
+setInterval(cleanup, 3600_000).unref();
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
   console.log(`Listening on http://localhost:${info.port} (data: ${dataDir})`);

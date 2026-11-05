@@ -1,6 +1,7 @@
 import { type Database, schema } from "@bc-launcher-server/db";
 import { drizzle } from "drizzle-orm/d1";
 import { createApp } from "../app";
+import { cleanupOrphanBlobs } from "../cleanup";
 import { loadConfig } from "../platform/config";
 import type { Platform } from "../platform/types";
 import { R2BlobStore } from "../platform/worker/r2-blob-store";
@@ -39,4 +40,12 @@ const app = createApp((env) => resolvePlatform(env as Env));
 
 export default {
   fetch: app.fetch,
+  // Cron trigger (wrangler.jsonc): hourly orphan blob cleanup.
+  scheduled(_controller, env, ctx) {
+    ctx.waitUntil(
+      cleanupOrphanBlobs(resolvePlatform(env)).then(({ deleted }) => {
+        if (deleted > 0) console.log(`Deleted ${deleted} orphan blobs`);
+      }),
+    );
+  },
 } satisfies ExportedHandler<Env>;

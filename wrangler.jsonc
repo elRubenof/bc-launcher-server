@@ -18,6 +18,8 @@
       "migrations_dir": "packages/db/migrations"
     }
   ],
+  // Hourly orphan blob cleanup (the `scheduled` handler in apps/api/src/entry/worker.ts).
+  "triggers": { "crons": ["17 * * * *"] },
   "r2_buckets": [
     {
       "binding": "BLOBS",
