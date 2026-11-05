@@ -129,4 +129,32 @@ describe("players", () => {
       (await request("GET", "/api/admin/players/00000000-0000-0000-0000-000000000000")).status,
     ).toBe(404);
   });
+
+  it("counts the joined players with access to each instance", async () => {
+    const { request } = await setup();
+    const counts = async () =>
+      Object.fromEntries(
+        (
+          (await (await request("GET", "/api/admin/instances")).json()) as {
+            id: string;
+            playersWithAccess: number;
+          }[]
+        ).map((instance) => [instance.id, instance.playersWithAccess]),
+      );
+
+    // Tomate_89 is banned from "evento"; GrieferX never joined.
+    expect(await counts()).toEqual({ "serie-t3": 2, evento: 1 });
+
+    await request("PUT", "/api/admin/instances/evento/access", { access: "whitelist" });
+    expect(await counts()).toEqual({ "serie-t3": 2, evento: 0 });
+    await request("POST", "/api/admin/instances/evento/whitelist", { player: "Nyxar" });
+    expect(await counts()).toEqual({ "serie-t3": 2, evento: 1 });
+
+    await request("POST", "/api/admin/blacklist", {
+      player: "Nyxar",
+      reason: null,
+      expiresAt: null,
+    });
+    expect(await counts()).toEqual({ "serie-t3": 1, evento: 0 });
+  });
 });

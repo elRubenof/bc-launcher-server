@@ -1,6 +1,7 @@
 import type { Instance } from "@bc-launcher-server/contracts";
 import { type Database, schema } from "@bc-launcher-server/db";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { instanceAccess, memberCondition } from "./access";
 import { base64UrlDecode, sha256Hex } from "./auth/crypto";
 import { DEFAULT_BACKGROUND_BASE64, DEFAULT_BACKGROUND_TYPE } from "./default-background";
 import type { BlobStore, Config } from "./platform/types";
@@ -32,12 +33,28 @@ const stats = {
   totalSize: sql<number>`(select coalesce(sum(${schema.blobs.size}), 0) from ${schema.instanceFiles} join ${schema.blobs} on ${schema.blobs.sha256} = ${schema.instanceFiles.blobSha256} where ${schema.instanceFiles.instanceId} = ${schema.instances.id})`,
 };
 
+/** Joined players with access to the instance in the current row (see `access.ts`). */
+function playersWithAccess(db: Database, now: Date) {
+  const visibility = sql`(select ${schema.settings.visibility} from ${schema.settings} where ${schema.settings.id} = 1)`;
+  return sql<number>`(${db
+    .select({ n: count() })
+    .from(schema.players)
+    .where(
+      and(
+        isNotNull(schema.players.firstSeenAt),
+        memberCondition(db, schema.players.uuid, now, visibility),
+        instanceAccess(db, schema.players.uuid, now),
+      ),
+    )})`;
+}
+
 function selectInstances(db: Database) {
   return db
     .select({
       instance: schema.instances,
       updatedBy: { id: schema.admins.id, username: schema.admins.username },
       ...stats,
+      playersWithAccess: playersWithAccess(db, new Date()),
     })
     .from(schema.instances)
     .leftJoin(schema.admins, eq(schema.admins.id, schema.instances.contentUpdatedBy));
@@ -68,6 +85,7 @@ function toInstance(row: SelectedInstance, config: Config): Instance {
     contentUpdatedBy: row.updatedBy,
     fileCount: Number(row.fileCount),
     totalSize: Number(row.totalSize),
+    playersWithAccess: Number(row.playersWithAccess),
     createdAt: instance.createdAt.toISOString(),
     updatedAt: instance.updatedAt.toISOString(),
   };

@@ -1225,6 +1225,9 @@
           "totalSize": {
             "type": "integer"
           },
+          "playersWithAccess": {
+            "type": "integer"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1255,6 +1258,7 @@
           "contentUpdatedBy",
           "fileCount",
           "totalSize",
+          "playersWithAccess",
           "createdAt",
           "updatedAt"
         ]

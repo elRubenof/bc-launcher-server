@@ -66,6 +66,11 @@ export const Instance = z
     fileCount: z.int(),
     /** Bytes of all the instance's files. */
     totalSize: z.int(),
+    /**
+     * Players who signed in at least once and can play it right now (members, not banned from it,
+     * and on its whitelist if it has one), whether or not it is active.
+     */
+    playersWithAccess: z.int(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
   })
