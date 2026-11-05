@@ -26,7 +26,10 @@ const unreferenced = sql`(
  * 24 h ago. The grace period covers launchers still downloading a previous manifest and uploads
  * whose change hasn't been applied yet. Runs hourly (cron on Cloudflare, timer on Node).
  */
-export async function cleanupOrphanBlobs(platform: Platform, now = Date.now()) {
+export async function cleanupOrphanBlobs(
+  platform: Pick<Platform, "db" | "blobs">,
+  now = Date.now(),
+) {
   const { db, blobs } = platform;
   const cutoff = new Date(now - ORPHAN_GRACE_MS);
 
@@ -83,7 +86,7 @@ export async function cleanupExpiredBans(db: Database, now = new Date()) {
 }
 
 /** The hourly maintenance: orphan blobs and expired bans. */
-export async function runCleanup(platform: Platform, now = Date.now()) {
+export async function runCleanup(platform: Pick<Platform, "db" | "blobs">, now = Date.now()) {
   await cleanupExpiredBans(platform.db, new Date(now));
   return cleanupOrphanBlobs(platform, now);
 }

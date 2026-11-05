@@ -25,10 +25,8 @@
       "binding": "BLOBS",
       "bucket_name": "bc-launcher-server-blobs"
     }
-  ],
-  // PUBLIC_URL is the deployment's public origin. SESSION_SECRET and JWT_SECRET are secrets:
-  // `wrangler secret put` in production, `.dev.vars` locally.
-  "vars": {
-    "PUBLIC_URL": "http://localhost:8787"
-  }
+  ]
+  // SESSION_SECRET and JWT_SECRET are secrets: `wrangler secret put` in production, `.dev.vars`
+  // locally. PUBLIC_URL is optional here: without it, the public URL is the origin each request
+  // came in on (workers.dev or a custom domain); set it as a var to force one.
 }

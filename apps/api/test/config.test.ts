@@ -28,6 +28,16 @@ describe("loadConfig", () => {
     );
   });
 
+  it("falls back to the default URL only without PUBLIC_URL", () => {
+    const { PUBLIC_URL: _, ...secrets } = env;
+    expect(loadConfig(secrets, "https://bc.example.workers.dev").publicUrl).toBe(
+      "https://bc.example.workers.dev",
+    );
+    expect(loadConfig(env, "https://bc.example.workers.dev").publicUrl).toBe(
+      "https://launcher.example.com",
+    );
+  });
+
   it("rejects an invalid public URL", () => {
     expect(() => loadConfig({ ...env, PUBLIC_URL: "not a url" })).toThrow();
   });
