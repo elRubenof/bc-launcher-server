@@ -494,6 +494,199 @@
           "admin"
         ]
       },
+      "InstanceContent": {
+        "type": "object",
+        "properties": {
+          "contentVersion": {
+            "type": "integer"
+          },
+          "minecraft": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "version"
+            ]
+          },
+          "loader": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "vanilla",
+                  "fabric",
+                  "quilt",
+                  "forge",
+                  "neoforge"
+                ]
+              },
+              "version": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "version"
+            ]
+          },
+          "managedDirs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstanceFile"
+            }
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "username"
+            ]
+          }
+        },
+        "required": [
+          "contentVersion",
+          "minecraft",
+          "loader",
+          "managedDirs",
+          "files",
+          "updatedAt",
+          "updatedBy"
+        ]
+      },
+      "InstanceFile": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "policy": {
+            "type": "string",
+            "enum": [
+              "always",
+              "once"
+            ]
+          }
+        },
+        "required": [
+          "path",
+          "sha256",
+          "size",
+          "policy"
+        ]
+      },
+      "ApplyContent": {
+        "type": "object",
+        "properties": {
+          "expectedContentVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mcVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "loader": {
+            "type": "string",
+            "enum": [
+              "vanilla",
+              "fabric",
+              "quilt",
+              "forge",
+              "neoforge"
+            ]
+          },
+          "loaderVersion": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "managedDirs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "policy": {
+                  "type": "string",
+                  "enum": [
+                    "always",
+                    "once"
+                  ]
+                }
+              },
+              "required": [
+                "path",
+                "sha256",
+                "policy"
+              ]
+            },
+            "maxItems": 10000
+          }
+        },
+        "required": [
+          "expectedContentVersion",
+          "mcVersion",
+          "loader",
+          "loaderVersion",
+          "managedDirs",
+          "files"
+        ]
+      },
       "Instance": {
         "type": "object",
         "properties": {
@@ -1882,6 +2075,147 @@
           },
           "401": {
             "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/instances/{id}/content": {
+      "get": {
+        "summary": "An instance's current content",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,39}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The content.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceContent"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such instance (`not_found`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Replace an instance's content in one go",
+        "description": "Upload every file first (`blobs/check` + `PUT blobs/{sha256}`). The new file list, managed folders and versions replace the current ones in a single transaction and `contentVersion` goes up by one, so players get either the old content or the new one, never a mix. Changed Minecraft or loader versions are checked against the official metadata.",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,39}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyContent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new content.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceContent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (`validation_error`), paths that clash (`path_conflict`), or versions that don't exist (`invalid_version`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such instance (`not_found`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Someone applied a change since `expectedContentVersion` (`content_conflict`), or some files aren't uploaded (`missing_blobs`, listed in `detail`). Nothing changed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The official metadata couldn't be fetched to check the versions (`metadata_unavailable`).",
             "content": {
               "application/problem+json": {
                 "schema": {

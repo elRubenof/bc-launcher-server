@@ -171,6 +171,17 @@ function describe(entry: ActivityEntry, t: T): { text: string; detail?: string }
         text: t("action.instance.updated", { instance }),
         detail: t("action.instance.updated.detail", { fields: fieldList(details, t) }),
       };
+    case "instance.content_applied": {
+      const counts = (details.counts ?? {}) as Record<string, number>;
+      return {
+        text: t("action.instance.content_applied", { instance, version: Number(details.to) }),
+        detail: t("action.instance.content_applied.detail", {
+          added: counts.added ?? 0,
+          changed: counts.changed ?? 0,
+          removed: counts.removed ?? 0,
+        }),
+      };
+    }
     case "instance.created":
     case "instance.colors_changed":
     case "instance.icon_changed":

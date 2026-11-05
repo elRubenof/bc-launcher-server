@@ -2,6 +2,7 @@ export * from "./activity";
 export * from "./admin";
 export * from "./assets";
 export * from "./blobs";
+export * from "./content";
 export * from "./discovery";
 export * from "./instances";
 export * from "./loaders";

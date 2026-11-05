@@ -9,6 +9,7 @@ import { registerAdmins } from "./routes/admins";
 import { registerAssets } from "./routes/assets";
 import { registerAuth } from "./routes/auth";
 import { registerBlobs } from "./routes/blobs";
+import { registerContent } from "./routes/content";
 import { registerDiscovery } from "./routes/discovery";
 import { registerInstances } from "./routes/instances";
 import { registerLoaders } from "./routes/loaders";
@@ -51,6 +52,8 @@ export function createApp(resolvePlatform: PlatformResolver) {
   registerAssets(app);
   registerAdmins(app);
   registerActivity(app);
+  // Before the instance routes: `PUT /instances/{id}/{kind}` would also match `/content`.
+  registerContent(app);
   registerInstances(app);
   registerBlobs(app);
   registerLoaders(app);

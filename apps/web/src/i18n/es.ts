@@ -153,6 +153,9 @@ export const es = {
   "action.instance.background_changed": "cambió el fondo de {instance}",
   "action.instance.background_reset": "restauró el fondo por defecto de {instance}",
   "action.instance.deleted": "borró la instancia {instance}",
+  "action.instance.content_applied": "aplicó cambios en {instance} (contenido v{version})",
+  "action.instance.content_applied.detail":
+    "{added} añadidos · {changed} modificados · {removed} eliminados",
   "field.name": "nombre",
   "field.description": "descripción",
   "field.discordUrl": "Discord",

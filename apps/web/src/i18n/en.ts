@@ -155,6 +155,8 @@ export const en: Messages = {
   "action.instance.background_changed": "changed the background of {instance}",
   "action.instance.background_reset": "restored the default background of {instance}",
   "action.instance.deleted": "deleted the instance {instance}",
+  "action.instance.content_applied": "applied changes to {instance} (content v{version})",
+  "action.instance.content_applied.detail": "{added} added · {changed} changed · {removed} removed",
   "field.name": "name",
   "field.description": "description",
   "field.discordUrl": "Discord",
