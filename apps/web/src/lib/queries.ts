@@ -3,6 +3,8 @@ import type {
   Admin,
   AdminListItem,
   ApplyContent,
+  BanPlayer,
+  BlacklistEntry,
   CreateInstance,
   DiscoveryDocument,
   Instance,
@@ -11,10 +13,13 @@ import type {
   LoaderVersion,
   MinecraftVersion,
   OrganizationSettings,
+  PlayerDetail,
+  PlayerSummary,
   UpdateInstance,
   UpdateOrganizationSettings,
+  WhitelistEntry,
 } from "@bc-launcher-server/contracts";
-import { queryOptions } from "@tanstack/react-query";
+import { type QueryClient, queryOptions } from "@tanstack/react-query";
 import { apiRequest } from "./api";
 
 export const meQuery = queryOptions({
@@ -97,6 +102,63 @@ export const loaderVersionsQuery = (type: string, mc: string) =>
     enabled: type !== "vanilla" && mc !== "",
   });
 
+export interface PlayerFilters {
+  q?: string | undefined;
+  status?: "all" | "member" | "banned" | "not_member" | "joined" | "never_joined" | undefined;
+  instance?: string | undefined;
+}
+
+export interface PlayerPage {
+  items: PlayerSummary[];
+  total: number;
+  launchableInstances: number;
+}
+
+export const PLAYERS_PAGE_SIZE = 50;
+
+export function playersPage(filters: PlayerFilters, offset = 0, limit = PLAYERS_PAGE_SIZE) {
+  const query = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+  if (filters.q) query.set("q", filters.q);
+  if (filters.status && filters.status !== "all") query.set("status", filters.status);
+  if (filters.instance) query.set("instance", filters.instance);
+  return apiRequest<PlayerPage>("GET", `/api/admin/players?${query}`);
+}
+
+export const playerQuery = (uuid: string) =>
+  queryOptions({
+    queryKey: ["player", uuid],
+    queryFn: () => apiRequest<PlayerDetail>("GET", `/api/admin/players/${uuid}`),
+  });
+
+/** `null` = the organization; otherwise an instance id. */
+export type AccessScope = string | null;
+
+const listPath = (scope: AccessScope, list: "whitelist" | "blacklist") =>
+  scope === null
+    ? `/api/admin/${list}`
+    : `/api/admin/instances/${encodeURIComponent(scope)}/${list}`;
+
+export const whitelistQuery = (scope: AccessScope) =>
+  queryOptions({
+    queryKey: ["access", scope ?? "", "whitelist"],
+    queryFn: () => apiRequest<WhitelistEntry[]>("GET", listPath(scope, "whitelist")),
+  });
+
+export const blacklistQuery = (scope: AccessScope) =>
+  queryOptions({
+    queryKey: ["access", scope ?? "", "blacklist"],
+    queryFn: () => apiRequest<BlacklistEntry[]>("GET", listPath(scope, "blacklist")),
+  });
+
+/** After any change to a list: players, player sheets and lists all show access. */
+export function invalidateAccess(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["access"] }),
+    queryClient.invalidateQueries({ queryKey: ["players"] }),
+    queryClient.invalidateQueries({ queryKey: ["player"] }),
+  ]);
+}
+
 const instancePath = (id: string) => `/api/admin/instances/${encodeURIComponent(id)}`;
 
 export const api = {
@@ -132,6 +194,18 @@ export const api = {
   removeInstanceImage: (id: string, kind: "icon" | "background") =>
     apiRequest<Instance>("DELETE", `${instancePath(id)}/${kind}`),
   deleteInstance: (id: string) => apiRequest<void>("DELETE", instancePath(id)),
+  updateInstanceAccess: (id: string, access: "everyone" | "whitelist") =>
+    apiRequest<{ access: "everyone" | "whitelist" }>("PUT", `${instancePath(id)}/access`, {
+      access,
+    }),
+  addToWhitelist: (scope: AccessScope, player: string) =>
+    apiRequest<WhitelistEntry>("POST", listPath(scope, "whitelist"), { player }),
+  removeFromWhitelist: (scope: AccessScope, uuid: string) =>
+    apiRequest<void>("DELETE", `${listPath(scope, "whitelist")}/${uuid}`),
+  ban: (scope: AccessScope, body: BanPlayer) =>
+    apiRequest<BlacklistEntry>("POST", listPath(scope, "blacklist"), body),
+  unban: (scope: AccessScope, uuid: string) =>
+    apiRequest<void>("DELETE", `${listPath(scope, "blacklist")}/${uuid}`),
   checkBlobs: (sha256: string[]) =>
     apiRequest<{ missing: string[] }>("POST", "/api/admin/blobs/check", { sha256 }),
   applyContent: (id: string, body: ApplyContent) =>

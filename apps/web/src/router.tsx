@@ -9,6 +9,7 @@ import {
 import { ApiError } from "./lib/api";
 import { meQuery, setupStatusQuery } from "./lib/queries";
 import { HomePage } from "./routes/home";
+import { InstanceAccessPage } from "./routes/instance/access";
 import { InstanceAppearancePage } from "./routes/instance/appearance";
 import { InstanceContentPage } from "./routes/instance/content";
 import { InstanceGeneralPage } from "./routes/instance/general";
@@ -133,6 +134,14 @@ const instanceContentRoute = createRoute({
   },
 });
 
+const instanceAccessRoute = createRoute({
+  getParentRoute: () => instanceRoute,
+  path: "/access",
+  component: function Access() {
+    return <InstanceAccessPage id={instanceRoute.useParams().id} />;
+  },
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => panelRoute,
   path: "/admin/settings",
@@ -168,6 +177,7 @@ const routeTree = rootRoute.addChildren([
       instanceGeneralRoute,
       instanceAppearanceRoute,
       instanceContentRoute,
+      instanceAccessRoute,
     ]),
     settingsRoute.addChildren([
       settingsOrganizationRoute,
