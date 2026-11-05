@@ -12,9 +12,11 @@ import type {
   InstanceContent,
   LoaderVersion,
   MinecraftVersion,
+  NewsItem,
   OrganizationSettings,
   PlayerDetail,
   PlayerSummary,
+  SaveNews,
   UpdateInstance,
   UpdateOrganizationSettings,
   WhitelistEntry,
@@ -159,6 +161,13 @@ export function invalidateAccess(queryClient: QueryClient) {
   ]);
 }
 
+export const newsQuery = (instanceId: string) =>
+  queryOptions({
+    queryKey: ["instances", instanceId, "news"],
+    queryFn: () =>
+      apiRequest<NewsItem[]>("GET", `/api/admin/instances/${encodeURIComponent(instanceId)}/news`),
+  });
+
 const instancePath = (id: string) => `/api/admin/instances/${encodeURIComponent(id)}`;
 
 export const api = {
@@ -206,6 +215,14 @@ export const api = {
     apiRequest<BlacklistEntry>("POST", listPath(scope, "blacklist"), body),
   unban: (scope: AccessScope, uuid: string) =>
     apiRequest<void>("DELETE", `${listPath(scope, "blacklist")}/${uuid}`),
+  uploadNewsImage: (file: File) =>
+    apiRequest<{ sha256: string; url: string }>("POST", "/api/admin/images", file),
+  createNews: (instanceId: string, body: SaveNews) =>
+    apiRequest<NewsItem>("POST", `${instancePath(instanceId)}/news`, body),
+  updateNews: (instanceId: string, newsId: string, body: SaveNews) =>
+    apiRequest<NewsItem>("PUT", `${instancePath(instanceId)}/news/${newsId}`, body),
+  deleteNews: (instanceId: string, newsId: string) =>
+    apiRequest<void>("DELETE", `${instancePath(instanceId)}/news/${newsId}`),
   checkBlobs: (sha256: string[]) =>
     apiRequest<{ missing: string[] }>("POST", "/api/admin/blobs/check", { sha256 }),
   applyContent: (id: string, body: ApplyContent) =>

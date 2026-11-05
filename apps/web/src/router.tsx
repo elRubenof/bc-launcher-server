@@ -14,6 +14,7 @@ import { InstanceAppearancePage } from "./routes/instance/appearance";
 import { InstanceContentPage } from "./routes/instance/content";
 import { InstanceGeneralPage } from "./routes/instance/general";
 import { InstanceLayout } from "./routes/instance/layout";
+import { InstanceNewsPage } from "./routes/instance/news";
 import { InstancesPage } from "./routes/instances";
 import { LoginPage } from "./routes/login";
 import { PanelLayout } from "./routes/panel-layout";
@@ -172,6 +173,14 @@ const orgBlacklistRoute = createRoute({
   component: OrgBlacklistPage,
 });
 
+const instanceNewsRoute = createRoute({
+  getParentRoute: () => instanceRoute,
+  path: "/news",
+  component: function News() {
+    return <InstanceNewsPage id={instanceRoute.useParams().id} />;
+  },
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => panelRoute,
   path: "/admin/settings",
@@ -208,6 +217,7 @@ const routeTree = rootRoute.addChildren([
       instanceAppearanceRoute,
       instanceContentRoute,
       instanceAccessRoute,
+      instanceNewsRoute,
     ]),
     playersRoute.addChildren([playersListRoute, orgWhitelistRoute, orgBlacklistRoute]),
     settingsRoute.addChildren([

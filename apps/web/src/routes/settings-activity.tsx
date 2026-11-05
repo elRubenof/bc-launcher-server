@@ -8,7 +8,7 @@ import { type Language, type MessageKey, useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/format";
 import { type ActivityFilters, activityPage, adminsQuery } from "@/lib/queries";
 
-const TYPES = ["admin", "org", "instance", "player", "whitelist"] as const;
+const TYPES = ["admin", "org", "instance", "news", "player", "whitelist"] as const;
 
 export const DOT: Record<string, string> = {
   admin: "bg-warning",
@@ -16,6 +16,7 @@ export const DOT: Record<string, string> = {
   instance: "bg-success",
   player: "bg-destructive",
   whitelist: "bg-primary",
+  news: "bg-[#60a5fa]",
 };
 
 export function SettingsActivityPage() {
@@ -230,6 +231,25 @@ export function describe(
           .filter(Boolean)
           .join(" · "),
       };
+    case "news.created": {
+      const scheduled = Date.parse(str("publishedAt")) > Date.parse(entry.createdAt);
+      return {
+        text: t(scheduled ? "action.news.scheduled" : "action.news.created", {
+          title: str("title"),
+          instance,
+        }),
+        ...(scheduled
+          ? {
+              detail: t("news.scheduledFor", {
+                when: formatDateTime(new Date(str("publishedAt")), language),
+              }),
+            }
+          : {}),
+      };
+    }
+    case "news.updated":
+    case "news.deleted":
+      return { text: t(`action.${entry.action}`, { title: str("title"), instance }) };
     case "instance.access_changed":
       return {
         text: t("action.instance.access_changed", { instance }),

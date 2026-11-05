@@ -13,6 +13,7 @@ const TABS = [
   { to: "/admin/instances/$id/appearance", labelKey: "instance.tab.appearance", exact: false },
   { to: "/admin/instances/$id/content", labelKey: "instance.tab.content", exact: false },
   { to: "/admin/instances/$id/access", labelKey: "instance.tab.access", exact: false },
+  { to: "/admin/instances/$id/news", labelKey: "instance.tab.news", exact: false },
 ] as const;
 
 export function InstanceLayout({ id }: { id: string }) {
