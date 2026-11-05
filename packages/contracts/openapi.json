@@ -1110,6 +1110,233 @@
           "stable",
           "recommended"
         ]
+      },
+      "LauncherInstance": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "iconUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "backgroundUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "colors": {
+            "$ref": "#/components/schemas/InstanceColors"
+          },
+          "mapUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "discordUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "webUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "minecraft": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "version"
+            ]
+          },
+          "loader": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "vanilla",
+                  "fabric",
+                  "quilt",
+                  "forge",
+                  "neoforge"
+                ]
+              },
+              "version": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "version"
+            ]
+          },
+          "serverAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recommendedRamMb": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "contentVersion": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "iconUrl",
+          "backgroundUrl",
+          "colors",
+          "mapUrl",
+          "discordUrl",
+          "webUrl",
+          "minecraft",
+          "loader",
+          "serverAddress",
+          "recommendedRamMb",
+          "contentVersion"
+        ]
+      },
+      "Manifest": {
+        "type": "object",
+        "properties": {
+          "contentVersion": {
+            "type": "integer"
+          },
+          "minecraft": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "version"
+            ]
+          },
+          "loader": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "vanilla",
+                  "fabric",
+                  "quilt",
+                  "forge",
+                  "neoforge"
+                ]
+              },
+              "version": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "version"
+            ]
+          },
+          "server": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "address"
+            ]
+          },
+          "managedDirs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManifestFile"
+            }
+          }
+        },
+        "required": [
+          "contentVersion",
+          "minecraft",
+          "loader",
+          "server",
+          "managedDirs",
+          "files"
+        ]
+      },
+      "ManifestFile": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "policy": {
+            "type": "string",
+            "enum": [
+              "always",
+              "once"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "path",
+          "sha256",
+          "size",
+          "policy",
+          "url"
+        ]
       }
     },
     "parameters": {}
@@ -3014,6 +3241,163 @@
           },
           "502": {
             "description": "The official metadata couldn't be fetched (`metadata_unavailable`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/instances": {
+      "get": {
+        "summary": "The instances the player can play, newest first",
+        "description": "Active instances with content. Player auth and access filtering come later.",
+        "tags": [
+          "Launcher"
+        ],
+        "responses": {
+          "200": {
+            "description": "The instances.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "instances": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LauncherInstance"
+                      }
+                    }
+                  },
+                  "required": [
+                    "instances"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/instances/{id}/manifest": {
+      "get": {
+        "summary": "What to sync into the instance folder",
+        "description": "Send the last `ETag` in `If-None-Match` to get `304` while nothing changed. The ETag changes with `contentVersion` and when the download URLs are renewed.",
+        "tags": [
+          "Launcher"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,39}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The manifest.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Manifest"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified."
+          },
+          "404": {
+            "description": "No such instance, or the player can't see it (`not_found`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/blobs/{sha256}": {
+      "get": {
+        "summary": "Download a file from a manifest's signed URL",
+        "tags": [
+          "Launcher"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "required": true,
+            "name": "sha256",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "exp",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": true,
+            "name": "sig",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file. Immutable.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The signature is wrong (`invalid_signature`) or the URL expired (`url_expired`): fetch the manifest again.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such file (`not_found`).",
             "content": {
               "application/problem+json": {
                 "schema": {

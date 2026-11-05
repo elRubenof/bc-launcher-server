@@ -12,6 +12,7 @@ import { registerBlobs } from "./routes/blobs";
 import { registerContent } from "./routes/content";
 import { registerDiscovery } from "./routes/discovery";
 import { registerInstances } from "./routes/instances";
+import { registerLauncher } from "./routes/launcher";
 import { registerLoaders } from "./routes/loaders";
 import { registerSettings } from "./routes/settings";
 import { registerSetup } from "./routes/setup";
@@ -57,6 +58,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
   registerInstances(app);
   registerBlobs(app);
   registerLoaders(app);
+  registerLauncher(app);
 
   return app;
 }

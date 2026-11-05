@@ -5,6 +5,7 @@ export * from "./blobs";
 export * from "./content";
 export * from "./discovery";
 export * from "./instances";
+export * from "./launcher";
 export * from "./loaders";
 export * from "./problem";
 export * from "./settings";
