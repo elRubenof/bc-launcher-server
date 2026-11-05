@@ -57,3 +57,42 @@ export async function isMember(db: Database, playerUuid: string, now = new Date(
     );
   return Boolean(row);
 }
+
+/**
+ * Whether the player can play the instance in the current row of `instances`: it is active and
+ * has content, the player isn't banned from it, and it is open to every member or the player is
+ * on its whitelist. Membership of the organization is checked separately (`requirePlayer`).
+ */
+export const playableBy = (db: Database, playerUuid: string, now: Date) =>
+  and(
+    eq(schema.instances.isActive, true),
+    gt(schema.instances.contentVersion, 0),
+    or(
+      eq(schema.instances.access, "everyone"),
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(schema.instanceWhitelist)
+          .where(
+            and(
+              eq(schema.instanceWhitelist.instanceId, schema.instances.id),
+              eq(schema.instanceWhitelist.playerUuid, playerUuid),
+            ),
+          ),
+      ),
+    ),
+    not(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(schema.instanceBlacklist)
+          .where(
+            and(
+              eq(schema.instanceBlacklist.instanceId, schema.instances.id),
+              eq(schema.instanceBlacklist.playerUuid, playerUuid),
+              activeBan(schema.instanceBlacklist.expiresAt, now),
+            ),
+          ),
+      ),
+    ),
+  ) as SQL;

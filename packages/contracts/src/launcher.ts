@@ -63,7 +63,8 @@ export const listLauncherInstancesRoute = createRoute({
   method: "get",
   path: "/api/v1/instances",
   summary: "The instances the player can play, newest first",
-  description: "Active instances with content. Access filtering per instance comes later.",
+  description:
+    "Active instances with content that the player can play: not banned from it, and it is open to every member or the player is on its whitelist. Instances opened to the player later appear here on their own.",
   tags: ["Launcher"],
   security: playerAuth,
   responses: {

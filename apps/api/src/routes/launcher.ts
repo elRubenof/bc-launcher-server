@@ -7,17 +7,14 @@ import {
 } from "@bc-launcher-server/contracts";
 import { type Database, schema } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { and, asc, desc, eq, gt } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
+import { playableBy } from "../access";
 import { readFiles } from "../content";
 import type { InstanceRow } from "../instances";
 import type { AppEnv, Config } from "../platform/types";
 import { problem } from "../problem";
 import { assetUrl, readSettings, type SettingsRow } from "../settings";
 import { checkBlobSignature, signedBlobUrl, urlWindow } from "../signed-urls";
-
-// Player auth (JWT) and access filtering are added with players: until then the launcher sees
-// every active instance that has content.
-const visible = and(eq(schema.instances.isActive, true), gt(schema.instances.contentVersion, 0));
 
 function toLauncherInstance(
   row: InstanceRow,
@@ -42,11 +39,12 @@ function toLauncherInstance(
   };
 }
 
-async function visibleInstance(db: Database, id: string) {
+/** The instance if the player can play it; instances they can't are invisible (`404`). */
+async function playableInstance(db: Database, id: string, playerUuid: string) {
   const [row] = await db
     .select()
     .from(schema.instances)
-    .where(and(eq(schema.instances.id, id), visible));
+    .where(and(eq(schema.instances.id, id), playableBy(db, playerUuid, new Date())));
   return row ?? null;
 }
 
@@ -55,7 +53,11 @@ export function registerLauncher(app: OpenAPIHono<AppEnv>) {
     const { db, config } = c.var.platform;
     const [settings, rows] = await Promise.all([
       readSettings(db),
-      db.select().from(schema.instances).where(visible).orderBy(desc(schema.instances.createdAt)),
+      db
+        .select()
+        .from(schema.instances)
+        .where(playableBy(db, c.var.player.uuid, new Date()))
+        .orderBy(desc(schema.instances.createdAt)),
     ]);
     return c.json(
       { instances: rows.map((row) => toLauncherInstance(row, settings, config)) },
@@ -66,7 +68,7 @@ export function registerLauncher(app: OpenAPIHono<AppEnv>) {
 
   app.openapi(getManifestRoute, async (c) => {
     const { db, config } = c.var.platform;
-    const instance = await visibleInstance(db, c.req.valid("param").id);
+    const instance = await playableInstance(db, c.req.valid("param").id, c.var.player.uuid);
     if (!instance) return problem(c, 404, "not_found", "No such instance");
 
     const now = Date.now();

@@ -1,8 +1,17 @@
 import type { LauncherInstance, Manifest } from "@bc-launcher-server/contracts";
+import { schema } from "@bc-launcher-server/db";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "../src/auth/crypto";
 import { checkBlobSignature, signedBlobUrl, URL_WINDOW_SECONDS } from "../src/signed-urls";
-import { createTestApp, createTestPlatform, jsonRequest, playerAuth, setupOwner } from "./helpers";
+import {
+  createTestApp,
+  createTestPlatform,
+  jsonRequest,
+  PROFILES,
+  playerAuth,
+  setupOwner,
+} from "./helpers";
 
 const NEW_INSTANCE = {
   id: "serie-t3",
@@ -68,6 +77,66 @@ describe("launcher API", () => {
     });
     expect(await (await launcher("/api/v1/instances")).json()).toEqual({ instances: [] });
     expect((await launcher("/api/v1/instances/serie-t3/manifest")).status).toBe(404);
+  });
+
+  it("shows whitelist-only instances to their whitelist and hides them from the rest", async () => {
+    const { app, platform, applyContent, launcher } = await setup();
+    await applyContent();
+    await platform.db
+      .update(schema.instances)
+      .set({ access: "whitelist" })
+      .where(eq(schema.instances.id, "serie-t3"));
+    const ids = async (headers?: Record<string, string>) =>
+      (
+        (await (await app.request("/api/v1/instances", { headers: headers ?? {} })).json()) as {
+          instances: LauncherInstance[];
+        }
+      ).instances.map((instance) => instance.id);
+
+    // Nyxar (the setup's player) isn't on the whitelist.
+    expect(await ids(await playerAuth(app, "Nyxar"))).toEqual([]);
+    expect((await launcher("/api/v1/instances/serie-t3/manifest")).status).toBe(404);
+
+    await platform.db
+      .insert(schema.instanceWhitelist)
+      .values({ instanceId: "serie-t3", playerUuid: PROFILES.Nyxar as string });
+    expect(await ids(await playerAuth(app, "Nyxar"))).toEqual(["serie-t3"]);
+    expect((await launcher("/api/v1/instances/serie-t3/manifest")).status).toBe(200);
+    expect(await ids(await playerAuth(app, "Tomate_89"))).toEqual([]);
+  });
+
+  it("lets an instance ban win over its whitelist until it expires", async () => {
+    const { platform, applyContent, launcher } = await setup();
+    await applyContent();
+    const nyxar = PROFILES.Nyxar as string;
+    await platform.db
+      .insert(schema.instanceWhitelist)
+      .values({ instanceId: "serie-t3", playerUuid: nyxar });
+    await platform.db.insert(schema.instanceBlacklist).values({
+      instanceId: "serie-t3",
+      playerUuid: nyxar,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const listed = async () =>
+      ((await (await launcher("/api/v1/instances")).json()) as { instances: unknown[] }).instances
+        .length;
+
+    expect(await listed()).toBe(0);
+    expect((await launcher("/api/v1/instances/serie-t3/manifest")).status).toBe(404);
+
+    // Expired: back to the access it had (everyone, here).
+    await platform.db
+      .update(schema.instanceBlacklist)
+      .set({ expiresAt: new Date(Date.now() - 1000) });
+    expect(await listed()).toBe(1);
+    expect((await launcher("/api/v1/instances/serie-t3/manifest")).status).toBe(200);
+  });
+
+  it("needs a player token", async () => {
+    const { app, applyContent } = await setup();
+    await applyContent();
+    expect((await app.request("/api/v1/instances")).status).toBe(401);
+    expect((await app.request("/api/v1/instances/serie-t3/manifest")).status).toBe(401);
   });
 
   it("falls back to the organization's links", async () => {
