@@ -14,7 +14,7 @@ Deploy targets: **Cloudflare** (Workers + D1 + R2 + static assets) and **Docker*
 
 This repo contains **only the server**. The launcher is the separate `bc-launcher` repo (Flutter). The two talk only through the public contract (discovery, `/api/vN`, the launcher's `compat.json`), so never assume both are deployed at the same version. The cross-repo decisions are in `bc-launcher/AGENTS.md` → "Architecture decisions".
 
-- Status: **early development**. Done: both runtimes, discovery, admin setup/login/sessions, admin accounts, organization settings with logo and icon, the activity log, the public download page, instances (CRUD, appearance, loader versions), content-addressed blobs, atomic content changes, the launcher manifest with signed blob URLs, the orphan blob cleanup, player sign-in with Mojang sessions, organization and instance access (whitelists, bans), news per instance, and the panel (setup, login, home, instances with general/appearance/content/access/news tabs, players, settings). Publishing (deploy button, GHCR image, release assets, `oasdiff`) is next; see "Server design" below.
+- Status: **early development**. Done: both runtimes, discovery, admin setup/login/sessions, admin accounts, organization settings with logo and icon, the activity log, the public download page, instances (CRUD, appearance, loader versions), content-addressed blobs, atomic content changes, the launcher manifest with signed blob URLs, the orphan blob cleanup, player sign-in with Mojang sessions, organization and instance access (whitelists, bans), news per instance, the panel (setup, login, home, instances with general/appearance/content/access/news tabs, players, settings) and publishing (Deploy to Cloudflare button, deployment README, GHCR image, `openapi.json` on releases, `oasdiff`); see "Server design" and "Releases" below.
 - License: GPL-3.0 (`LICENSE`).
 
 ## Commands
@@ -32,12 +32,14 @@ pnpm db:generate      # generate a migration from packages/db/src/schema.ts (dri
 pnpm dev:worker       # build the panel, apply local D1 migrations, wrangler dev on :8787 (secrets in .dev.vars, see .dev.vars.example)
 pnpm dev:web          # panel with hot reload on :5173, proxying the API to :8787 (API_URL to change it)
 pnpm build:web        # build the panel to apps/web/dist (served by both runtimes)
+pnpm run build        # = build:web; the build command of Deploy to Cloudflare / Workers Builds
+pnpm run deploy       # apply D1 migrations remotely and wrangler deploy (`pnpm deploy` is a different pnpm command)
 pnpm --filter @bc-launcher-server/api dev:node    # Node server on :3000 (env in apps/api/.env, see .env.example)
 pnpm --filter @bc-launcher-server/api build:node  # bundle the Node server to apps/api/dist/node.js
 docker compose -f docker/docker-compose.yml up --build   # Docker image (secrets in docker/.env)
 ```
 
-CI (`.github/workflows/ci.yml`) runs install (frozen lockfile), lint, typecheck, test, the panel build and the `openapi.json` freshness check on every push and pull request, and builds and smoke-tests the Docker image.
+CI (`.github/workflows/ci.yml`) runs install (frozen lockfile), lint, typecheck, test, the panel build and the `openapi.json` freshness check on every push and pull request, checks `/api/v1` and discovery for breaking changes with `oasdiff` (job `api-compat`), and builds and smoke-tests the Docker image. `.github/workflows/release.yml` runs on `vX.Y.Z` tags (see "Releases").
 
 ## Project layout
 
@@ -79,7 +81,8 @@ packages/
   db/           Drizzle schema (SQLite), the shared Database type and migrations/ (drizzle-kit, used by D1 and Node)
 docker/         Dockerfile (Node 22, multi-stage), docker-compose.yml example
 wrangler.jsonc  Worker config: D1 (DB), R2 (BLOBS), static assets (apps/web/dist), hourly cron (orphan
-                blobs and expired bans); the deploy button is planned
+                blobs and expired bans); also what the Deploy to Cloudflare button provisions
+.github/        workflows/ci.yml (checks, oasdiff, Docker smoke test), workflows/release.yml (GHCR, release)
 tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 ```
 
@@ -95,7 +98,7 @@ tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 - **Runtime-agnostic core:** everything that differs between Cloudflare and Docker goes behind `Platform { db, blobs, config }` (`apps/api/src/platform/types.ts`), resolved per request from the runtime's bindings and read in handlers as `c.var.platform`:
   - `db`: Drizzle on D1 (Workers) or libSQL on a local SQLite file, `/data/db.sqlite` (Node). Both are async and support `batch()`, the only way to write atomically on D1, so atomic writes use `db.batch()` and never interactive transactions. Inside `batch()` use only query builders: Drizzle's D1 driver fails on raw SQL with parameters (`db.run(sql…)`) there. Test anything that uses `batch()` under `wrangler dev` too, since tests only run libSQL. Same migrations; Node applies them on start, Cloudflare with `wrangler d1 migrations apply`.
   - `blobs` (`BlobStore`: `head/get/put/delete`, streaming, keys must be lowercase sha256 hex): R2 or `/data/blobs/<sha256[0..2]>/<sha256>`. `put` must verify that the bytes hash to the key and throw `BlobMismatchError` without storing anything otherwise (R2 through its `sha256` put option, the filesystem while streaming to a `.part` file). Every adapter runs the shared contract test in `test/blob-store.ts`.
-  - `config`: `PUBLIC_URL`, `SESSION_SECRET`, `JWT_SECRET` from env/secrets.
+  - `config`: `PUBLIC_URL`, `SESSION_SECRET`, `JWT_SECRET` from env/secrets (`loadConfig`). Secrets must be 32+ characters, so placeholders like `change-me` are refused. `PUBLIC_URL` is required on Node; on Workers it is optional and defaults to the request's origin (the platform is cached per env and origin), because the Deploy to Cloudflare flow can't know the `workers.dev` address beforehand. The cron handler gets only `db` and `blobs`.
   - `fetch`: outgoing HTTP (Mojang and loader metadata), injected so tests stub it (`stubFetch()` in `test/helpers.ts`; `mojangFetch()` also answers `hasJoined` and profile lookups from `PROFILES`, and `playerAuth()` signs a test player in).
 - **D1 limits:** at most 5 terms in a compound `SELECT` (`UNION`), so "is it referenced anywhere" checks use one `NOT EXISTS` per table (`cleanup.ts`); at most 100 bound parameters per statement, so lists (hashes, files) go in as one JSON parameter read with `json_each` (`apps/api/src/blobs.ts`, `content.ts`). A conditional batch is built from statements guarded by the same `exists(...)` condition, with the version bump last and `returning()`, so the caller can tell whether anything was written (`applyContentStatements`).
 - **Route order:** `/api/admin/instances/{id}/{kind}` also matches other sub-paths, so routes like `/content`, `/access`, `/whitelist`, `/blacklist` and `/news` are registered before the instance routes in `app.ts`.
@@ -106,6 +109,7 @@ tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 - **Admin API** (`/api/admin/*`): every route needs a session except setup and login (`requireAdmin`), and every mutating request must come from the deployment's own origin (`sameOrigin`). The Vite dev proxy rewrites `Origin` so this also works on :5173. Handlers that editors can't use start with `managersOnly(c)`; handlers that act on another account go through `findTarget()` in `routes/admins.ts`, which refuses your own account and the owner's. Every change an admin makes is recorded in `audit_log` with a stable `action` code, and the panel turns each code into a sentence (`routes/settings-activity.tsx`); add both when adding an action.
 - **Panel UI:** all user-facing text goes through `useI18n().t()`, with the key added to **both** `src/i18n/es.ts` and `en.ts`. Follow the panel mockups (dark theme, colors in `src/index.css`). Accessible markup: real buttons, links and labelled inputs.
 - **Secrets:** never commit real secrets, tokens or signing keys. Never log passwords, session tokens or JWTs.
+- **Deploy to Cloudflare** reads the root `package.json`: the `build` and `deploy` scripts (prefilled as build and deploy commands), the `cloudflare.bindings` descriptions shown in the flow, and `.dev.vars.example` for the secrets it asks for. The repo root must stay a deployable Worker (no `database_id` in `wrangler.jsonc`, resources provisioned by the flow). Keep `README.md` → "Deploy" in step with any change to secrets, variables or deployment.
 
 ## Server design (agreed, not all implemented yet)
 
@@ -130,6 +134,12 @@ tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 - **Access in two levels** (`apps/api/src/access.ts`, as SQL conditions used by the launcher and the panel): organization member = no active `org_blacklist` entry and (public or on `org_whitelist`); instance access = launchable (active, with content), no active `instance_blacklist` entry and (`everyone` or on `instance_whitelist`). Bans always win and can expire (`expires_at`; expired ones stop counting at once and the hourly cleanup deletes them); banning doesn't touch whitelists, so lifting a ban restores exactly the previous access. Non-members and organization-banned players get the same `403 not_member`; instances the player can't play are absent from the list and `404` on the manifest. Admin routes: `/api/admin/{whitelist,blacklist}` and `/api/admin/instances/:id/{whitelist,blacklist,access}`, open to editors. Banning someone already banned replaces the reason and expiry. Going from public to private can whitelist everyone who already joined in the same batch (`whitelistJoinedPlayers`). Deleting an instance deletes its lists.
 - **News:** belongs to one instance (no organization-wide news): title, markdown body (up to 20 000 characters), optional image, optional link for the launcher's "Open" button, `pinned` and `published_at` (a future date = scheduled). Images are uploaded first with `POST /api/admin/images` (same rules as the logo; unused ones are deleted by the orphan cleanup) and referenced by sha256 when saving. Admin routes `/api/admin/instances/:id/news[/:newsId]`, open to editors, list scheduled news too. The launcher gets published news only, pinned first and then newest first, 20 per page with an opaque `cursor` (keyset on pinned, `published_at`, id); an instance the player can't play is `404`. Deleting an instance deletes its news. The panel previews the markdown with its own small renderer (headings, `**bold**`, `*italic*`, lists, `code`, http(s) links; `_` is left alone because Minecraft names use it).
 - **Audit log:** applying content, bans (`player.banned`/`player.unbanned`), whitelist changes (`whitelist.added`/`whitelist.removed`, with `instance` in the details for instance lists), instance access, news (`news.created`/`updated`/`deleted`), visibility and admin changes are recorded in `audit_log`.
+
+## Releases
+
+- Versions are `vX.Y.Z` tags on `main`, SemVer, starting at `0.1.0`. The version lives in `apps/api/package.json` (reported as `serverVersion` in discovery); a release is a `chore: release vX.Y.Z` commit that only bumps it, then the tag on that commit. Tags and releases are created only with the owner's approval.
+- `release.yml` checks that the tag matches the version, publishes the Docker image to `ghcr.io/elrubenof/bc-launcher-server` (`linux/amd64` + `linux/arm64`, tags `X.Y.Z`, `X.Y` and `latest`) and then creates the GitHub release with generated notes and `packages/contracts/openapi.json` attached, for the launcher to check its models against.
+- `oasdiff` (CI job `api-compat`, pinned version and checksum) compares `/api/v1/*` and `/.well-known/*` with the `openapi.json` of the latest `vX.Y.Z` tag (with no release yet: the pull request's base or the previous push) and fails on breaking changes. Admin routes are not checked: the panel ships with the API.
 
 ## Commits
 
