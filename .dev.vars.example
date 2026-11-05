@@ -1,5 +1,4 @@
-# Secrets of the Worker. Locally: copy to .dev.vars (never commit it) and replace both values.
-# "Deploy to Cloudflare" asks for them too. Each needs 32+ random characters (`openssl rand -hex 32`);
-# the server refuses to start with these placeholders.
-SESSION_SECRET=change-me
+# Secret of the Worker. Locally: copy to .dev.vars (never commit it) and replace the value.
+# "Deploy to Cloudflare" asks for it too. It needs 32+ random characters (`openssl rand -hex 32`);
+# the server refuses to start with this placeholder.
 JWT_SECRET=change-me

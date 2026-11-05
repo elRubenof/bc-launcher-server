@@ -3,7 +3,6 @@ import { loadConfig } from "../src/platform/config";
 
 const env = {
   PUBLIC_URL: "https://launcher.example.com/",
-  SESSION_SECRET: "s".repeat(32),
   JWT_SECRET: "j".repeat(32),
 };
 
@@ -11,7 +10,6 @@ describe("loadConfig", () => {
   it("reads the config and normalizes the public URL", () => {
     expect(loadConfig(env)).toEqual({
       publicUrl: "https://launcher.example.com",
-      sessionSecret: env.SESSION_SECRET,
       jwtSecret: env.JWT_SECRET,
     });
   });
@@ -24,7 +22,7 @@ describe("loadConfig", () => {
 
   it("lists every missing variable", () => {
     expect(() => loadConfig({ PUBLIC_URL: env.PUBLIC_URL })).toThrow(
-      "Missing required environment variables: SESSION_SECRET, JWT_SECRET",
+      "Missing required environment variables: JWT_SECRET",
     );
   });
 
@@ -38,9 +36,9 @@ describe("loadConfig", () => {
     );
   });
 
-  it("refuses short secrets", () => {
-    expect(() => loadConfig({ ...env, SESSION_SECRET: "change-me" })).toThrow(
-      "SESSION_SECRET must be at least 32 characters",
+  it("refuses a short JWT secret", () => {
+    expect(() => loadConfig({ ...env, JWT_SECRET: "change-me" })).toThrow(
+      "JWT_SECRET must be at least 32 characters",
     );
   });
 

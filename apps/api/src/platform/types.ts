@@ -17,7 +17,6 @@ export interface BlobStore {
 
 export interface Config {
   publicUrl: string;
-  sessionSecret: string;
   jwtSecret: string;
 }
 

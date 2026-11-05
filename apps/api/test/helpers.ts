@@ -92,7 +92,6 @@ export async function createTestPlatform(fetchFn = mojangFetch()): Promise<Platf
     fetch: fetchFn,
     config: {
       publicUrl: "http://localhost:8787",
-      sessionSecret: "test-session-secret",
       jwtSecret: "test-jwt-secret",
     },
   };

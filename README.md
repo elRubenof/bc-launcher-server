@@ -19,11 +19,7 @@ One deployment is one organization. Pick one of the two targets.
 You need a Cloudflare account with R2 enabled (Cloudflare may ask for a payment method to enable R2, even within its free tier).
 
 1. Click the button and sign in. Cloudflare copies this repository to your GitHub or GitLab account and creates the Worker, a D1 database (`DB`) and an R2 bucket (`BLOBS`). You can keep the suggested names.
-2. Set the two secrets, each 32 or more random characters and different from each other (e.g. run `openssl rand -hex 32` twice):
-   - `SESSION_SECRET`
-   - `JWT_SECRET`: signs player tokens and download links; changing it later signs every player out.
-
-   The server refuses to start with the `change-me` placeholders or anything shorter.
+2. Set the secret `JWT_SECRET` to 32 or more random characters (e.g. the output of `openssl rand -hex 32`). It signs player tokens and download links; changing it later signs every player out. The server refuses to start with the `change-me` placeholder or anything shorter.
 3. Check the build settings: the build command is `pnpm run build` and the deploy command runs the `deploy` script (`pnpm run deploy` or `npm run deploy`), not `npx wrangler deploy`. The deploy script applies the database migrations and deploys the Worker.
 4. Deploy, then [open the panel right away](#after-deploying-open-the-panel-right-away) at `https://<worker>.<your-subdomain>.workers.dev/admin`.
 
@@ -40,8 +36,7 @@ pnpm install
 pnpm exec wrangler login
 pnpm exec wrangler d1 create bc-launcher-server         # add the printed database_id to wrangler.jsonc
 pnpm exec wrangler r2 bucket create bc-launcher-server-blobs
-pnpm exec wrangler secret put SESSION_SECRET            # paste the output of `openssl rand -hex 32`
-pnpm exec wrangler secret put JWT_SECRET                # and a different one here
+pnpm exec wrangler secret put JWT_SECRET                # paste the output of `openssl rand -hex 32`
 pnpm run build && pnpm run deploy
 ```
 
@@ -61,7 +56,6 @@ services:
       - "127.0.0.1:3000:3000"
     environment:
       PUBLIC_URL: https://launcher.example.com # the public address, as players see it
-      SESSION_SECRET: ${SESSION_SECRET:?}
       JWT_SECRET: ${JWT_SECRET:?}
     volumes:
       - data:/data
@@ -70,21 +64,20 @@ volumes:
   data:
 ```
 
-Put the secrets in a `.env` file next to it (32 or more random characters each, different from each other):
+Put the secret in a `.env` file next to it (32 or more random characters):
 
 ```bash
-printf 'SESSION_SECRET=%s\nJWT_SECRET=%s\n' "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" > .env
+echo "JWT_SECRET=$(openssl rand -hex 32)" > .env
 docker compose up -d
 ```
 
 Then [open the panel right away](#after-deploying-open-the-panel-right-away) at `https://launcher.example.com/admin`. Migrations run when the container starts. Back up the `data` volume.
 
-| Variable         | Required | Description                                                                                     |
-| ---------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `PUBLIC_URL`     | Yes      | The server's public origin (and base path, if any). Used for download links and secure cookies. |
-| `SESSION_SECRET` | Yes      | 32+ random characters.                                                                          |
-| `JWT_SECRET`     | Yes      | 32+ random characters. Signs player tokens and download links.                                  |
-| `PORT`           | No       | Listening port inside the container (default `3000`).                                           |
+| Variable     | Required | Description                                                                                     |
+| ------------ | -------- | ----------------------------------------------------------------------------------------------- |
+| `PUBLIC_URL` | Yes      | The server's public origin (and base path, if any). Used for download links and secure cookies. |
+| `JWT_SECRET` | Yes      | 32+ random characters. Signs player tokens and download links.                                  |
+| `PORT`       | No       | Listening port inside the container (default `3000`).                                           |
 
 ### After deploying: open the panel right away
 
@@ -112,12 +105,12 @@ pnpm install
 pnpm lint && pnpm typecheck && pnpm test
 ```
 
-Run the server locally (secrets need 32+ characters: `openssl rand -hex 32`):
+Run the server locally (`JWT_SECRET` needs 32+ characters: `openssl rand -hex 32`):
 
-- **Cloudflare Worker** (local D1 and R2): copy `.dev.vars.example` to `.dev.vars` and replace both secrets, then `pnpm dev:worker` → http://localhost:8787
+- **Cloudflare Worker** (local D1 and R2): copy `.dev.vars.example` to `.dev.vars` and replace the secret, then `pnpm dev:worker` → http://localhost:8787
 - **Panel with hot reload**: with the Worker running, `pnpm dev:web` → http://localhost:5173
 - **Node**: copy `apps/api/.env.example` to `apps/api/.env`, run `pnpm build:web` once, then `pnpm --filter @bc-launcher-server/api dev:node` → http://localhost:3000
-- **Docker**: create `docker/.env` with `SESSION_SECRET` and `JWT_SECRET`, then `docker compose -f docker/docker-compose.yml up --build` → http://localhost:3000
+- **Docker**: create `docker/.env` with `JWT_SECRET`, then `docker compose -f docker/docker-compose.yml up --build` → http://localhost:3000
 
 Open `/admin` to create the owner account on first visit. Check the API with `curl http://localhost:3000/health` and `curl http://localhost:3000/.well-known/bc-launcher`.
 

@@ -11,7 +11,6 @@ interface Env {
   BLOBS: R2Bucket;
   /** Optional: without it, the public URL is the origin each request came in on. */
   PUBLIC_URL?: string;
-  SESSION_SECRET?: string;
   JWT_SECRET?: string;
 }
 
@@ -50,7 +49,6 @@ function resolvePlatform(env: Env, requestUrl: string): Platform {
       config: loadConfig(
         {
           PUBLIC_URL: env.PUBLIC_URL,
-          SESSION_SECRET: env.SESSION_SECRET,
           JWT_SECRET: env.JWT_SECRET,
         },
         origin,
