@@ -22,9 +22,18 @@ import {
   treeRows,
 } from "@/lib/content/draft";
 import { type Collected, fromDrop, fromFileList, fromZip, hashEntries } from "@/lib/content/import";
+import {
+  deleteDraft,
+  deserializeDraft,
+  draftKey,
+  loadDraft,
+  type SavedDraft,
+  saveDraft,
+  serializeDraft,
+} from "@/lib/content/persist";
 import { useUploads } from "@/lib/content/uploads";
 import { formatBytes, formatRelative } from "@/lib/format";
-import { api, contentQuery, instanceQuery, instancesQuery } from "@/lib/queries";
+import { api, contentQuery, instanceQuery, instancesQuery, meQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import {
   ImportDialog,
@@ -59,7 +68,13 @@ function ContentEditor({ instance, initial }: { instance: Instance; initial: Ins
   const [server, setServer] = useState(initial);
   const base = useMemo(() => draftFrom(server), [server]);
   const [draft, setDraft] = useState(() => draftFrom(initial));
-  const { uploads, add: addUploads, retry, clear: clearUploads } = useUploads();
+  const { uploads, add: addUploads, adopt, retry, clear: clearUploads } = useUploads();
+  const me = useQuery(meQuery);
+  const storageKey = me.data ? draftKey(me.data.id, instance.id) : null;
+  // Changes saved in this browser by an earlier visit, waiting for "Continue" or "Discard".
+  const [restorable, setRestorable] = useState<SavedDraft | null>(null);
+  // Saving starts once we know there's nothing to restore, so a fresh editor doesn't wipe it.
+  const [persisting, setPersisting] = useState(false);
   const [selected, setSelected] = useState<{ path: string; kind: "dir" | "file" } | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState<PendingImport | null>(null);
@@ -110,11 +125,85 @@ function ContentEditor({ instance, initial }: { instance: Instance; initial: Ins
   }, [needed, uploads]);
   const ready = progress.done === progress.count && changes.count > 0;
 
+  // Pending changes are kept in this browser; only files still uploading are lost by leaving.
+  const uploadsUnfinished = dirty && progress.done < progress.count;
   const blocker = useBlocker({
-    shouldBlockFn: () => dirty,
-    enableBeforeUnload: () => dirty,
+    shouldBlockFn: () => uploadsUnfinished,
+    enableBeforeUnload: () => uploadsUnfinished,
     withResolver: true,
   });
+
+  useEffect(() => {
+    if (!storageKey) return;
+    let cancelled = false;
+    void loadDraft(storageKey).then((saved) => {
+      if (cancelled) return;
+      const hasChanges =
+        saved &&
+        (changesOf(draftFrom(saved.base), deserializeDraft(saved)).count > 0 ||
+          saved.draft.folders.length > 0);
+      if (hasChanges) setRestorable(saved);
+      else setPersisting(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!persisting || !storageKey) return;
+    const timer = setTimeout(() => {
+      if (dirty) void saveDraft(storageKey, serializeDraft(server, draft));
+      else void deleteDraft(storageKey);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [persisting, storageKey, dirty, server, draft]);
+
+  async function restore(saved: SavedDraft) {
+    const savedDraft = deserializeDraft(saved);
+    const result =
+      saved.base.contentVersion === server.contentVersion
+        ? { draft: savedDraft, conflicts: [] as string[] }
+        : rebase(draftFrom(saved.base), savedDraft, base);
+    setDraft(result.draft);
+    setRestorable(null);
+    setPersisting(true);
+
+    // Files uploaded before leaving are on the server; the rest must be imported again.
+    const pendingFiles = [...result.draft.files.values()].filter(
+      (file) => !baseShas.has(file.sha256),
+    );
+    let missing = 0;
+    if (pendingFiles.length > 0) {
+      try {
+        const lacking = new Set(
+          (await api.checkBlobs([...new Set(pendingFiles.map((file) => file.sha256))])).missing,
+        );
+        adopt(pendingFiles.filter((file) => !lacking.has(file.sha256)));
+        missing = new Set(pendingFiles.filter((f) => lacking.has(f.sha256)).map((f) => f.sha256))
+          .size;
+      } catch {
+        missing = pendingFiles.length;
+      }
+    }
+    const texts = [
+      saved.base.contentVersion === server.contentVersion
+        ? null
+        : t(result.conflicts.length > 0 ? "content.conflictPaths" : "content.conflict", {
+            version: server.contentVersion,
+          }),
+      missing > 0 ? t("content.restore.missing", { count: missing }) : null,
+    ].filter((text): text is string => text !== null);
+    setNotice(
+      texts.length > 0 ? { tone: "warning", text: texts.join(" "), paths: result.conflicts } : null,
+    );
+  }
+
+  function dropSaved() {
+    if (storageKey) void deleteDraft(storageKey);
+    setRestorable(null);
+    setPersisting(true);
+  }
 
   const edit = useCallback((change: (next: Draft) => void) => {
     setDraft((current) => {
@@ -366,6 +455,36 @@ function ContentEditor({ instance, initial }: { instance: Instance; initial: Ins
       : [];
   const folderPolicies = new Set(selectedFolderFiles.map((file) => file.policy));
   const totalSize = server.files.reduce((sum, file) => sum + file.size, 0);
+
+  if (restorable) {
+    return (
+      <section
+        aria-labelledby="content-restore"
+        className="flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/10 p-[18px]"
+      >
+        <h2 id="content-restore" className="m-0 text-base font-semibold text-warning">
+          {t("content.restore.title")}
+        </h2>
+        <p className="m-0 text-subtle-foreground">
+          {t("content.restore.description", {
+            when: formatRelative(new Date(restorable.savedAt), language),
+            count: changesOf(draftFrom(restorable.base), deserializeDraft(restorable)).count,
+          })}
+          {restorable.base.contentVersion !== server.contentVersion
+            ? ` ${t("content.restore.serverChanged", { version: server.contentVersion })}`
+            : ""}
+        </p>
+        <div className="flex gap-2">
+          <Button type="button" onClick={() => void restore(restorable)}>
+            {t("content.restore.continue")}
+          </Button>
+          <Button type="button" variant="outline" onClick={dropSaved}>
+            {t("common.discard")}
+          </Button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <div

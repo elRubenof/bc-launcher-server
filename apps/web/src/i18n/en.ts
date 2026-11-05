@@ -429,12 +429,19 @@ export const en: Messages = {
     "Another admin applied changes (now v{version}) and touched files you changed too. Your versions were kept for:",
   "content.missingBlobs":
     "The server no longer has some uploaded files. They're uploading again; apply when they finish.",
-  "content.leave.title": "You have unapplied changes",
+  "content.leave.title": "Files are still uploading",
   "content.leave.description":
-    "If you leave now, the pending changes and running uploads are lost.",
-  "content.leave.leave": "Leave and discard",
+    "Your pending changes stay saved in this browser, but you'll have to import the files that are still uploading again.",
+  "content.leave.leave": "Leave",
   "content.leave.stay": "Keep editing",
   "content.editor": "Content editor",
   "home.allInstances": "See all",
   "home.contentLine": "Content v{version} · {when} · {files} files",
+  "content.restore.title": "You have unapplied changes",
+  "content.restore.description": "You left {count} pending changes {when} in this browser.",
+  "content.restore.serverChanged":
+    "Another change was applied since (now v{version}): yours will be replayed on top.",
+  "content.restore.continue": "Continue",
+  "content.restore.missing":
+    "{count} files still need uploading: the browser no longer has access to them, import them again.",
 };

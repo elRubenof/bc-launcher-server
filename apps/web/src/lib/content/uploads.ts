@@ -94,9 +94,28 @@ export function useUploads() {
       const next = new Map(current);
       for (const upload of current.values()) {
         const wanted = sha256s ? sha256s.includes(upload.sha256) : upload.status === "error";
-        if (wanted && upload.status !== "uploading") {
-          next.set(upload.sha256, { ...upload, status: "queued", loaded: 0 });
-        }
+        if (!wanted || upload.status === "uploading") continue;
+        // Adopted after a restore: there are no bytes to send, the file must be imported again.
+        if (upload.blob.size !== upload.size) next.delete(upload.sha256);
+        else next.set(upload.sha256, { ...upload, status: "queued", loaded: 0 });
+      }
+      return next;
+    });
+  }, []);
+
+  /** Files the server already has (after restoring saved changes): nothing to upload. */
+  const adopt = useCallback((files: { sha256: string; size: number }[]) => {
+    setUploads((current) => {
+      const next = new Map(current);
+      for (const file of files) {
+        if (next.has(file.sha256)) continue;
+        next.set(file.sha256, {
+          sha256: file.sha256,
+          blob: new Blob([]),
+          size: file.size,
+          status: "done",
+          loaded: file.size,
+        });
       }
       return next;
     });
@@ -140,5 +159,5 @@ export function useUploads() {
     [],
   );
 
-  return { uploads, add, retry, clear };
+  return { uploads, add, adopt, retry, clear };
 }

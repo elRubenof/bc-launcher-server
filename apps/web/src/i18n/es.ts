@@ -435,14 +435,21 @@ export const es = {
     "Otro admin aplicó cambios (ahora v{version}) y tocó archivos que tú también cambiaste. Se han mantenido tus versiones de:",
   "content.missingBlobs":
     "El servidor ya no tiene algunos archivos subidos. Se están subiendo otra vez; aplica cuando terminen.",
-  "content.leave.title": "Tienes cambios sin aplicar",
+  "content.leave.title": "Hay archivos subiéndose",
   "content.leave.description":
-    "Si sales ahora se perderán los cambios pendientes y las subidas en curso.",
-  "content.leave.leave": "Salir y descartar",
+    "Tus cambios pendientes se quedan guardados en este navegador, pero los archivos que aún se están subiendo tendrás que importarlos otra vez.",
+  "content.leave.leave": "Salir",
   "content.leave.stay": "Seguir editando",
   "content.editor": "Editor de contenido",
   "home.allInstances": "Ver todas",
   "home.contentLine": "Contenido v{version} · {when} · {files} archivos",
+  "content.restore.title": "Tienes cambios sin aplicar",
+  "content.restore.description": "Dejaste {count} cambios pendientes {when} en este navegador.",
+  "content.restore.serverChanged":
+    "Desde entonces se aplicó otro cambio (ahora v{version}): se volverán a aplicar encima.",
+  "content.restore.continue": "Continuar",
+  "content.restore.missing":
+    "Faltan {count} archivos por subir: el navegador ya no tiene acceso a ellos, vuelve a importarlos.",
 } as const;
 
 export type MessageKey = keyof typeof es;
