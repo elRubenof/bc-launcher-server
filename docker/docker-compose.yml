@@ -1,7 +1,10 @@
-# Example deployment. Put it behind a reverse proxy with TLS and set PUBLIC_URL to its public origin.
-# Secrets go in docker/.env (never committed): SESSION_SECRET and JWT_SECRET, e.g. `openssl rand -hex 32`.
+# Example deployment with the published image. Put it behind a reverse proxy with TLS and set
+# PUBLIC_URL to its public origin. Settings go in docker/.env (never committed): PUBLIC_URL,
+# SESSION_SECRET and JWT_SECRET (32+ random characters each, e.g. `openssl rand -hex 32`).
+# `docker compose up -d` pulls the image; `docker compose up --build` builds it from this checkout.
 services:
   server:
+    image: ghcr.io/elrubenof/bc-launcher-server:${SERVER_VERSION:-latest}
     build:
       context: ..
       dockerfile: docker/Dockerfile
