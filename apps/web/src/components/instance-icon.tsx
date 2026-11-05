@@ -11,7 +11,8 @@ export function InstanceIcon({
 }) {
   const box = cn("flex size-9 shrink-0 rounded-md", className);
   if (instance.iconUrl) {
-    return <img src={instance.iconUrl} alt="" className={cn(box, "object-cover")} />;
+    // Whole and undistorted: an icon that isn't square leaves empty space instead of being cut.
+    return <img src={instance.iconUrl} alt="" className={cn(box, "object-contain")} />;
   }
   const initials = instance.name
     .split(/\s+/)
