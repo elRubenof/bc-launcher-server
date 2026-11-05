@@ -140,7 +140,7 @@ tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 
 - Versions are `vX.Y.Z` tags on `main`, SemVer, starting at `0.1.0`. The version lives in `apps/api/package.json` (reported as `serverVersion` in discovery); a release is a `chore: release vX.Y.Z` commit that only bumps it, then the tag on that commit. Tags and releases are created only with the owner's approval.
 - `release.yml` checks that the tag matches the version, publishes the Docker image to `ghcr.io/elrubenof/bc-launcher-server` (`linux/amd64` + `linux/arm64`, tags `X.Y.Z`, `X.Y` and `latest`) and then creates the GitHub release with generated notes and `packages/contracts/openapi.json` attached, for the launcher to check its models against.
-- `oasdiff` (CI job `api-compat`, pinned version and checksum) compares `/api/v1/*` and `/.well-known/*` with the `openapi.json` of the latest `vX.Y.Z` tag (with no release yet: the pull request's base or the previous push) and fails on breaking changes. Admin routes are not checked: the panel ships with the API.
+- `oasdiff` (CI job `api-compat`, pinned version and checksum) compares `/api/v1/*` and `/.well-known/*` with the `openapi.json` of the latest `vX.Y.Z` tag and fails on breaking changes. Before the first release it is skipped: nothing is published, so the contract can still change. Admin routes are not checked: the panel ships with the API.
 
 ## Commits
 
