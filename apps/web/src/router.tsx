@@ -9,6 +9,10 @@ import {
 import { ApiError } from "./lib/api";
 import { meQuery, setupStatusQuery } from "./lib/queries";
 import { HomePage } from "./routes/home";
+import { InstanceAppearancePage } from "./routes/instance/appearance";
+import { InstanceGeneralPage } from "./routes/instance/general";
+import { InstanceLayout } from "./routes/instance/layout";
+import { InstancesPage } from "./routes/instances";
 import { LoginPage } from "./routes/login";
 import { PanelLayout } from "./routes/panel-layout";
 import { PublicPage } from "./routes/public-page";
@@ -89,6 +93,37 @@ const homeRoute = createRoute({
   component: HomePage,
 });
 
+const instancesRoute = createRoute({
+  getParentRoute: () => panelRoute,
+  path: "/admin/instances",
+  component: InstancesPage,
+});
+
+const instanceRoute = createRoute({
+  getParentRoute: () => panelRoute,
+  path: "/admin/instances/$id",
+  component: function Instance() {
+    const { id } = instanceRoute.useParams();
+    return <InstanceLayout id={id} />;
+  },
+});
+
+const instanceGeneralRoute = createRoute({
+  getParentRoute: () => instanceRoute,
+  path: "/",
+  component: function General() {
+    return <InstanceGeneralPage id={instanceRoute.useParams().id} />;
+  },
+});
+
+const instanceAppearanceRoute = createRoute({
+  getParentRoute: () => instanceRoute,
+  path: "/appearance",
+  component: function Appearance() {
+    return <InstanceAppearancePage id={instanceRoute.useParams().id} />;
+  },
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => panelRoute,
   path: "/admin/settings",
@@ -119,6 +154,8 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   panelRoute.addChildren([
     homeRoute,
+    instancesRoute,
+    instanceRoute.addChildren([instanceGeneralRoute, instanceAppearanceRoute]),
     settingsRoute.addChildren([
       settingsOrganizationRoute,
       settingsAdminsRoute,
