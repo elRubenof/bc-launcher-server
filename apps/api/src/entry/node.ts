@@ -21,6 +21,7 @@ await migrateLibsqlDatabase(db, resolve(process.env.MIGRATIONS_DIR ?? SOURCE_MIG
 const platform: Platform = {
   db,
   blobs: new FsBlobStore(join(dataDir, "blobs")),
+  fetch: (input, init) => fetch(input, init),
   config,
 };
 

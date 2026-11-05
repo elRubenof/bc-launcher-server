@@ -4,5 +4,6 @@ export * from "./assets";
 export * from "./blobs";
 export * from "./discovery";
 export * from "./instances";
+export * from "./loaders";
 export * from "./problem";
 export * from "./settings";

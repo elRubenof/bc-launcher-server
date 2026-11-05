@@ -19,8 +19,10 @@ import { eq } from "drizzle-orm";
 import type { Context } from "hono";
 import { storeUploadedImage, upsertImageBlob } from "../images";
 import { ensureDefaultBackground, instanceExists, listInstances, readInstance } from "../instances";
+import { checkVersions } from "../loaders";
 import type { AppEnv } from "../platform/types";
 import { problem } from "../problem";
+import { metadataUnavailable } from "./loaders";
 
 const upperColors = (colors: InstanceColors): InstanceColors => ({
   primary: colors.primary.toUpperCase(),
@@ -52,6 +54,17 @@ export function registerInstances(app: OpenAPIHono<AppEnv>) {
     }
     if (await instanceExists(db, body.id)) {
       return problem(c, 409, "instance_exists", "An instance with that id already exists");
+    }
+    try {
+      const invalid = await checkVersions(
+        c.var.platform.fetch,
+        body.mcVersion,
+        body.loader,
+        body.loaderVersion,
+      );
+      if (invalid) return problem(c, 400, "invalid_version", "Invalid version", invalid);
+    } catch (error) {
+      return metadataUnavailable(c, error);
     }
 
     const background = await ensureDefaultBackground(blobs);

@@ -23,6 +23,7 @@ function resolvePlatform(env: Env): Platform {
     platform = {
       db,
       blobs: new R2BlobStore(env.BLOBS),
+      fetch: (input, init) => fetch(input, init),
       config: loadConfig({
         PUBLIC_URL: env.PUBLIC_URL,
         SESSION_SECRET: env.SESSION_SECRET,

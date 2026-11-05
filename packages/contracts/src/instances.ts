@@ -139,16 +139,21 @@ export const createInstanceRoute = createRoute({
   path: "/api/admin/instances",
   summary: "Create an instance with BC Launcher's default appearance and no content",
   description:
-    "The new instance has `mods` as a managed folder and stays hidden in the launcher until content is applied.",
+    "The Minecraft and loader versions are checked against the official metadata. The new instance has `mods` as a managed folder and stays hidden in the launcher until content is applied.",
   tags: ["Admin"],
   request: {
     body: { required: true, content: { "application/json": { schema: CreateInstance } } },
   },
   responses: {
     201: instanceResponse("The new instance."),
-    400: problemResponse("Invalid request."),
+    400: problemResponse(
+      "Invalid request, or a Minecraft or loader version that doesn't exist (`invalid_version`).",
+    ),
     401: unauthenticated,
     409: problemResponse("An instance with that id already exists (`instance_exists`)."),
+    502: problemResponse(
+      "The official metadata couldn't be fetched to check the versions (`metadata_unavailable`).",
+    ),
   },
 });
 

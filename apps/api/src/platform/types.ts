@@ -26,6 +26,8 @@ export interface Platform {
   db: Database;
   blobs: BlobStore;
   config: Config;
+  /** Outgoing HTTP (Mojang and loader metadata). Injected so tests can stub it. */
+  fetch: typeof fetch;
 }
 
 /** Builds the platform from the runtime's bindings (`c.env` on Workers, unused on Node). */

@@ -872,6 +872,51 @@
           "sha256",
           "size"
         ]
+      },
+      "MinecraftVersion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "release",
+              "snapshot",
+              "old_beta",
+              "old_alpha"
+            ]
+          },
+          "releaseTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "releaseTime"
+        ]
+      },
+      "LoaderVersion": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "stable": {
+            "type": "boolean"
+          },
+          "recommended": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "version",
+          "stable",
+          "recommended"
+        ]
       }
     },
     "parameters": {}
@@ -1882,7 +1927,7 @@
       },
       "post": {
         "summary": "Create an instance with BC Launcher's default appearance and no content",
-        "description": "The new instance has `mods` as a managed folder and stays hidden in the launcher until content is applied.",
+        "description": "The Minecraft and loader versions are checked against the official metadata. The new instance has `mods` as a managed folder and stays hidden in the launcher until content is applied.",
         "tags": [
           "Admin"
         ],
@@ -1908,7 +1953,7 @@
             }
           },
           "400": {
-            "description": "Invalid request.",
+            "description": "Invalid request, or a Minecraft or loader version that doesn't exist (`invalid_version`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1929,6 +1974,16 @@
           },
           "409": {
             "description": "An instance with that id already exists (`instance_exists`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The official metadata couldn't be fetched to check the versions (`metadata_unavailable`).",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2471,6 +2526,160 @@
           },
           "413": {
             "description": "The file is too large (`blob_too_large`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/minecraft/versions": {
+      "get": {
+        "summary": "Minecraft versions, newest first (from Mojang's version manifest)",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false"
+            },
+            "required": false,
+            "name": "all",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The versions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MinecraftVersion"
+                      }
+                    }
+                  },
+                  "required": [
+                    "versions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The official metadata couldn't be fetched (`metadata_unavailable`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/loaders/{type}/versions": {
+      "get": {
+        "summary": "A loader's versions for a Minecraft version, newest first",
+        "description": "From the loader's official metadata (Fabric and Quilt meta, Forge and NeoForge maven), cached for a few minutes. Empty if the loader doesn't support that Minecraft version.",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "fabric",
+                "quilt",
+                "forge",
+                "neoforge"
+              ]
+            },
+            "required": true,
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50
+            },
+            "required": true,
+            "name": "mc",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The versions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LoaderVersion"
+                      }
+                    }
+                  },
+                  "required": [
+                    "versions"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The official metadata couldn't be fetched (`metadata_unavailable`).",
             "content": {
               "application/problem+json": {
                 "schema": {
