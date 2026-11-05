@@ -16,6 +16,7 @@ import { InstanceContentPage } from "./routes/instance/content";
 import { InstanceGeneralPage } from "./routes/instance/general";
 import { InstanceLayout } from "./routes/instance/layout";
 import { InstanceNewsPage } from "./routes/instance/news";
+import { InstanceTabsPage } from "./routes/instance/tabs";
 import { InstancesPage } from "./routes/instances";
 import { LoginPage } from "./routes/login";
 import { PanelLayout } from "./routes/panel-layout";
@@ -139,6 +140,14 @@ const instanceAppearanceRoute = createRoute({
   },
 });
 
+const instanceTabsRoute = createRoute({
+  getParentRoute: () => instanceRoute,
+  path: "/tabs",
+  component: function Tabs() {
+    return <InstanceTabsPage id={instanceRoute.useParams().id} />;
+  },
+});
+
 const instanceContentRoute = createRoute({
   getParentRoute: () => instanceRoute,
   path: "/content",
@@ -221,6 +230,7 @@ const routeTree = rootRoute.addChildren([
     instanceRoute.addChildren([
       instanceGeneralRoute,
       instanceAppearanceRoute,
+      instanceTabsRoute,
       instanceContentRoute,
       instanceAccessRoute,
       instanceNewsRoute,

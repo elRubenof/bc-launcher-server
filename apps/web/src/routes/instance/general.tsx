@@ -141,81 +141,90 @@ function GeneralForm({ instance }: { instance: Instance }) {
               onChange={(event) => set("description", event.target.value)}
             />
           </div>
-          <IconPicker instance={instance} onSaved={onSaved} />
-        </Card>
-
-        <Card className="flex flex-col gap-4 p-[22px]">
-          <h2 className="m-0 text-base font-semibold">{t("instance.links")}</h2>
-          <FormField
-            label={t("org.discord")}
-            type="url"
-            placeholder={orgFallback(settings.data?.discordUrl)}
-            value={form.discordUrl}
-            error={errors.discordUrl}
-            onChange={(event) => set("discordUrl", event.target.value)}
-          />
-          <FormField
-            label={t("org.web")}
-            type="url"
-            placeholder={orgFallback(settings.data?.webUrl)}
-            value={form.webUrl}
-            error={errors.webUrl}
-            onChange={(event) => set("webUrl", event.target.value)}
-          />
-          <p className="m-0 mt-auto text-xs text-muted-foreground">{t("instance.linksHint")}</p>
-        </Card>
-
-        <Card className="flex flex-col gap-4 p-[22px]">
-          <h2 className="m-0 text-base font-semibold">{t("instance.server")}</h2>
-          <FormField
-            label={t("instance.serverAddress")}
-            placeholder="play.example.com:25565"
-            className="font-mono text-[13px]"
-            hint={t("instance.serverAddressHint")}
-            value={form.serverAddress}
-            error={errors.serverAddress}
-            onChange={(event) => set("serverAddress", event.target.value)}
-          />
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={ramId}>{t("instance.ram")}</Label>
-            <Select
-              id={ramId}
-              value={form.recommendedRamMb}
-              onChange={(event) => set("recommendedRamMb", event.target.value)}
-            >
-              <option value="">{t("instance.ramNone")}</option>
-              {RAM_OPTIONS_GB.map((gb) => (
-                <option key={gb} value={gb * 1024}>
-                  {gb} GB
-                </option>
-              ))}
-            </Select>
+          <div className="mt-auto">
+            <IconPicker instance={instance} onSaved={onSaved} />
           </div>
         </Card>
 
-        <Card className="flex flex-col gap-4 p-[22px]">
-          <h2 className="m-0 text-base font-semibold">{t("instance.state")}</h2>
-          <div className="flex items-center justify-between gap-4">
-            <span className="flex flex-col gap-1">
-              <span id={activeId} className="font-medium">
-                {t("instance.active")}
-              </span>
-              <span className="text-[13px] text-muted-foreground">{t("instance.activeHint")}</span>
-            </span>
-            <Switch
-              checked={form.isActive}
-              onCheckedChange={(checked) => set("isActive", checked)}
-              aria-labelledby={activeId}
+        <div className="flex min-w-0 flex-col gap-5">
+          <Card className="flex flex-col gap-4 p-[22px]">
+            <h2 className="m-0 text-base font-semibold">{t("instance.links")}</h2>
+            <FormField
+              label={t("org.discord")}
+              type="url"
+              placeholder={orgFallback(settings.data?.discordUrl)}
+              value={form.discordUrl}
+              error={errors.discordUrl}
+              onChange={(event) => set("discordUrl", event.target.value)}
             />
-          </div>
-          <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
-            <span className="flex flex-col gap-1">
-              <span className="font-medium text-destructive-foreground">
-                {t("instance.delete")}
+            <FormField
+              label={t("org.web")}
+              type="url"
+              placeholder={orgFallback(settings.data?.webUrl)}
+              value={form.webUrl}
+              error={errors.webUrl}
+              onChange={(event) => set("webUrl", event.target.value)}
+            />
+          </Card>
+
+          <Card className="flex flex-1 flex-col gap-4 p-[22px]">
+            <h2 className="m-0 text-base font-semibold">{t("instance.state")}</h2>
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex flex-col gap-1">
+                <span id={activeId} className="font-medium">
+                  {t("instance.active")}
+                </span>
+                <span className="text-[13px] text-muted-foreground">
+                  {t("instance.activeHint")}
+                </span>
               </span>
-              <span className="text-[13px] text-muted-foreground">{t("instance.deleteHint")}</span>
-            </span>
-            <DeleteInstanceDialog instance={instance} />
+              <Switch
+                checked={form.isActive}
+                onCheckedChange={(checked) => set("isActive", checked)}
+                aria-labelledby={activeId}
+              />
+            </div>
+            <div className="mt-auto flex items-center justify-between gap-4 border-t border-border pt-4">
+              <span className="flex flex-col gap-1">
+                <span className="font-medium text-destructive-foreground">
+                  {t("instance.delete")}
+                </span>
+                <span className="text-[13px] text-muted-foreground">
+                  {t("instance.deleteHint")}
+                </span>
+              </span>
+              <DeleteInstanceDialog instance={instance} />
+            </div>
+          </Card>
+        </div>
+
+        <Card className="flex flex-col gap-4 p-[22px] lg:col-span-2">
+          <h2 className="m-0 text-base font-semibold">{t("instance.server")}</h2>
+          <div className="grid items-start gap-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <FormField
+              label={t("instance.serverAddress")}
+              placeholder="play.example.com:25565"
+              className="font-mono text-[13px]"
+              hint={t("instance.serverAddressHint")}
+              value={form.serverAddress}
+              error={errors.serverAddress}
+              onChange={(event) => set("serverAddress", event.target.value)}
+            />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={ramId}>{t("instance.ram")}</Label>
+              <Select
+                id={ramId}
+                value={form.recommendedRamMb}
+                onChange={(event) => set("recommendedRamMb", event.target.value)}
+              >
+                <option value="">{t("instance.ramNone")}</option>
+                {RAM_OPTIONS_GB.map((gb) => (
+                  <option key={gb} value={gb * 1024}>
+                    {gb} GB
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
         </Card>
       </div>

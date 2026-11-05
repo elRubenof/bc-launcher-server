@@ -5,7 +5,8 @@
   "license": "GPL-3.0-only",
   "exports": {
     ".": "./src/index.ts",
-    "./paths": "./src/paths.ts"
+    "./paths": "./src/paths.ts",
+    "./web-tabs": "./src/web-tabs.ts"
   },
   "scripts": {
     "typecheck": "tsc"

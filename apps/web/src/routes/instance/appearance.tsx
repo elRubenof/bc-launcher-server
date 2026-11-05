@@ -259,7 +259,12 @@ function LauncherPreview({ instance, colors }: { instance: Instance; colors: Ins
         >
           {t("appearance.preview.home")}
         </span>
-        <span className="text-[13px] opacity-80">{t("appearance.preview.map")}</span>
+        {instance.tabs.map((tab, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the list is the order.
+          <span key={index} className="text-[13px] opacity-80">
+            {tab.label}
+          </span>
+        ))}
         <span className="text-[13px] opacity-80">{t("appearance.preview.settings")}</span>
       </div>
       <div className="flex flex-1 flex-col justify-end gap-3.5 p-6">

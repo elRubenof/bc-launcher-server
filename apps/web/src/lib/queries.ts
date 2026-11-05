@@ -20,6 +20,7 @@ import type {
   ServerUpdates,
   UpdateInstance,
   UpdateOrganizationSettings,
+  WebTab,
   WhitelistEntry,
 } from "@bc-launcher-server/contracts";
 import { type QueryClient, queryOptions } from "@tanstack/react-query";
@@ -206,6 +207,8 @@ export const api = {
     apiRequest<Instance>("PUT", instancePath(id), body),
   updateColors: (id: string, colors: InstanceColors) =>
     apiRequest<Instance>("PUT", `${instancePath(id)}/appearance`, { colors }),
+  updateTabs: (id: string, tabs: WebTab[]) =>
+    apiRequest<Instance>("PUT", `${instancePath(id)}/tabs`, { tabs }),
   uploadInstanceImage: (id: string, kind: "icon" | "background", file: File) =>
     apiRequest<Instance>("PUT", `${instancePath(id)}/${kind}`, file),
   removeInstanceImage: (id: string, kind: "icon" | "background") =>
