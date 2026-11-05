@@ -1,8 +1,9 @@
-import type { ActivityEntry } from "@bc-launcher-server/contracts";
+import type { ActivityEntry, Loader } from "@bc-launcher-server/contracts";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { versionLabel } from "@/components/version-picker";
 import { type MessageKey, useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/format";
 import { type ActivityFilters, activityPage, adminsQuery } from "@/lib/queries";
@@ -130,6 +131,18 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
 
 type T = ReturnType<typeof useI18n>["t"];
 
+type LoggedVersion = { mc: string; loader: Loader; loaderVersion: string | null };
+
+/** "Fabric 0.16.9 · MC 1.21.1 → Forge 47.3.0 · MC 1.20.1", if the change moved versions. */
+function versionChange(details: Record<string, unknown>) {
+  const from = details.versionFrom as LoggedVersion | undefined;
+  const to = details.versionTo as LoggedVersion | undefined;
+  if (!from || !to) return "";
+  const label = (v: LoggedVersion) =>
+    versionLabel({ mcVersion: v.mc, loader: v.loader, loaderVersion: v.loaderVersion });
+  return `${label(from)} → ${label(to)}`;
+}
+
 function fieldList(details: Record<string, unknown>, t: T) {
   const fields = Array.isArray(details.changed) ? (details.changed as string[]) : [];
   return fields.map((field) => t(`field.${field}` as MessageKey)).join(", ");
@@ -175,11 +188,16 @@ function describe(entry: ActivityEntry, t: T): { text: string; detail?: string }
       const counts = (details.counts ?? {}) as Record<string, number>;
       return {
         text: t("action.instance.content_applied", { instance, version: Number(details.to) }),
-        detail: t("action.instance.content_applied.detail", {
-          added: counts.added ?? 0,
-          changed: counts.changed ?? 0,
-          removed: counts.removed ?? 0,
-        }),
+        detail: [
+          t("action.instance.content_applied.detail", {
+            added: counts.added ?? 0,
+            changed: counts.changed ?? 0,
+            removed: counts.removed ?? 0,
+          }),
+          versionChange(details),
+        ]
+          .filter(Boolean)
+          .join(" · "),
       };
     }
     case "instance.created":
