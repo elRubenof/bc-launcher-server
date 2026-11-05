@@ -94,12 +94,15 @@ async function metaVersions(fetchFn: Fetch, base: string, mc: string) {
     | { loader?: { version?: string; stable?: boolean } }[]
     | null;
   if (!Array.isArray(entries)) return [];
+  const loaders = entries.flatMap(({ loader }) => (loader?.version ? [loader] : []));
+  // Fabric flags only its newest release as `stable`: use that flag for the recommendation, and
+  // the version string (betas, pre-releases) to tell releases apart.
   return withRecommended(
-    entries.flatMap(({ loader }) =>
-      loader?.version
-        ? [{ version: loader.version, stable: loader.stable ?? !isPreRelease(loader.version) }]
-        : [],
-    ),
+    loaders.map((loader) => ({
+      version: loader.version as string,
+      stable: !isPreRelease(loader.version as string),
+    })),
+    loaders.find((loader) => loader.stable)?.version,
   );
 }
 

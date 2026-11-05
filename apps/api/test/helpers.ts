@@ -18,7 +18,7 @@ export const UPSTREAM: Record<string, unknown> = {
   "https://meta.fabricmc.net/v2/versions/loader/1.21.1": [
     { loader: { version: "0.16.10-beta.1", stable: false } },
     { loader: { version: "0.16.9", stable: true } },
-    { loader: { version: "0.16.8", stable: true } },
+    { loader: { version: "0.16.8", stable: false } },
   ],
   "https://meta.quiltmc.org/v3/versions/loader/1.21.1": [
     { loader: { version: "0.27.0-beta.1" } },
