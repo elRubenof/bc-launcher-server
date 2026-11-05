@@ -52,8 +52,8 @@ export const PROFILES: Record<string, string> = {
 };
 
 /**
- * Upstream stub that also plays Mojang: `hasJoined` confirms every known profile (whatever the
- * `serverId`), and the profile lookups by name and uuid answer from `PROFILES`.
+ * Upstream stub that also plays Mojang and playerdb.co: `hasJoined` confirms every known profile
+ * (whatever the `serverId`), and the profile lookups by name and uuid answer from `PROFILES`.
  */
 export function mojangFetch(
   profiles: Record<string, string> = PROFILES,
@@ -74,6 +74,22 @@ export function mojangFetch(
       const found = Object.entries(profiles).find(([, uuid]) => uuid.replaceAll("-", "") === id);
       return found ? profile(found) : new Response(null, { status: 204 });
     }
+    if (url.host === "playerdb.co") {
+      const ref = decodeURIComponent(url.pathname.split("/").at(-1) ?? "");
+      const found =
+        byName(ref) ??
+        Object.entries(profiles).find(([, uuid]) => uuid.replaceAll("-", "") === ref);
+      return found
+        ? Response.json({
+            code: "player.found",
+            success: true,
+            data: { player: { username: found[0], id: found[1], raw_id: ref } },
+          })
+        : Response.json(
+            { code: "minecraft.invalid_username", success: false, data: {} },
+            { status: 400 },
+          );
+    }
     if (url.host === "api.mojang.com") {
       const found = byName(decodeURIComponent(url.pathname.split("/").at(-1) ?? ""));
       return found ? profile(found) : new Response(null, { status: 404 });
@@ -93,6 +109,8 @@ export async function createTestPlatform(fetchFn = mojangFetch()): Promise<Platf
     config: {
       publicUrl: "http://localhost:8787",
       jwtSecret: "test-jwt-secret",
+      playerAuth: "mojang-session",
+      mojangSessionUrl: "https://sessionserver.mojang.com/session/minecraft",
     },
   };
 }

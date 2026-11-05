@@ -75,6 +75,10 @@ export const es = {
   "org.name": "Nombre",
   "org.description": "Descripción",
   "org.logo": "Logo",
+  "org.unverifiedTitle": "La identidad de los jugadores no se verifica",
+  "org.unverifiedBody":
+    "Este servidor está en Cloudflare, y Mojang bloquea sus peticiones, así que se fía del nombre que envía el launcher. Cualquiera puede usar el nombre de otro jugador: la whitelist, la blacklist y la organización privada no impiden ver las instancias ni descargar su contenido. Tu servidor de Minecraft sigue verificando a quien entra a jugar. Para verificar también aquí, configura un proxy del servidor de sesiones de Mojang.",
+  "org.unverifiedHowTo": "Cómo configurarlo",
   "org.icon": "Icono",
   "org.imageInvalid": "Usa una imagen PNG, JPEG, WebP o GIF.",
   "org.imageTooLarge": "La imagen no puede pasar de 2 MB.",

@@ -34,4 +34,7 @@
   // `wrangler secret put` (or `.dev.vars` locally) to manage it yourself. PUBLIC_URL is optional
   // too: without it, the public URL is the origin each request came in on (workers.dev or a
   // custom domain); set it as a var to force one.
+  // MOJANG_SESSION_URL is optional: Mojang blocks Workers, so without it player names aren't
+  // verified (README → "Player identity"). Set it to a proxy of Mojang's session server, e.g.
+  // "vars": { "MOJANG_SESSION_URL": "https://proxy.example.com/session/minecraft" }
 }

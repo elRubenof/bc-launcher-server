@@ -95,7 +95,7 @@ export const verifyRoute = createRoute({
   path: "/api/v1/auth/verify",
   summary: "Finish signing a player in",
   description:
-    "Checks with Mojang (`hasJoined`) that the player joined with the challenge's `serverId`. Members get a token; everyone who passes the check is recorded as a player.",
+    "Checks with Mojang (`hasJoined`) that the player joined with the challenge's `serverId`. When discovery's `auth.type` is `unverified`, the server can't reach Mojang and only looks the name up, trusting it. Members get a token; everyone who passes the check is recorded as a player.",
   tags: ["Launcher"],
   request: {
     body: { required: true, content: { "application/json": { schema: VerifyRequest } } },

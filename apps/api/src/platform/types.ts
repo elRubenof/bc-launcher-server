@@ -15,9 +15,19 @@ export interface BlobStore {
   delete(sha256: string): Promise<void>;
 }
 
+/**
+ * How players prove who they are: `mojang-session` asks Mojang's session server (`hasJoined`);
+ * `unverified` trusts the name the launcher sends (Cloudflare without a session proxy, because
+ * Mojang refuses requests from Workers).
+ */
+export type PlayerAuth = "mojang-session" | "unverified";
+
 export interface Config {
   publicUrl: string;
   jwtSecret: string;
+  playerAuth: PlayerAuth;
+  /** Base URL of Mojang's session server, or of a proxy in front of it. */
+  mojangSessionUrl: string;
 }
 
 /** Everything that differs between Cloudflare and Docker. */

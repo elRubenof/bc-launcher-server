@@ -20,7 +20,12 @@ export const DiscoveryDocument = z
     minLauncherVersion: z.string().nullable(),
     capabilities: z.array(z.string()),
     auth: z.object({
-      type: z.literal("mojang-session"),
+      /**
+       * `mojang-session`: the launcher calls Mojang's `join` and the server checks `hasJoined`.
+       * `unverified`: the server can't reach Mojang (Cloudflare without a session proxy) and trusts
+       * the name sent to `verify`; the launcher still calls `join` and the request is the same.
+       */
+      type: z.enum(["mojang-session", "unverified"]),
     }),
   })
   .openapi("DiscoveryDocument");

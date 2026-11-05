@@ -1,7 +1,13 @@
 import type { Player } from "@bc-launcher-server/contracts";
+import { MOJANG_SESSION_URL } from "./platform/config";
 
-const SESSION_SERVER = "https://sessionserver.mojang.com/session/minecraft";
 const PROFILES_API = "https://api.mojang.com/users/profiles/minecraft";
+/**
+ * playerdb.co mirrors Mojang's profiles. It answers from Cloudflare Workers, which Mojang's
+ * `api.mojang.com` and `sessionserver.mojang.com` refuse (403), so lookups try it first.
+ */
+const PLAYERDB_API = "https://playerdb.co/api/player/minecraft";
+const USER_AGENT = "bc-launcher-server (+https://github.com/elRubenof/bc-launcher-server)";
 
 /** Mojang couldn't be reached or answered with an error. */
 export class MojangUnavailableError extends Error {
@@ -54,18 +60,74 @@ async function fetchProfile(fetchFn: typeof fetch, url: string): Promise<Player 
   return { uuid: dashedUuid(id), name };
 }
 
-/** Whether `username` joined with `serverId` (the launcher's `join`); its profile if so. */
-export function hasJoined(fetchFn: typeof fetch, username: string, serverId: string) {
+/** Looks a profile up on playerdb.co by name or uuid; `null` when there is no such player. */
+async function fetchPlayerDb(fetchFn: typeof fetch, ref: string): Promise<Player | null> {
+  const url = `${PLAYERDB_API}/${encodeURIComponent(ref)}`;
+  let res: Response;
+  try {
+    res = await fetchFn(url, { headers: { Accept: "application/json", "User-Agent": USER_AGENT } });
+  } catch (error) {
+    throw new MojangUnavailableError("Couldn't reach playerdb.co", { cause: error });
+  }
+  let body: {
+    code?: unknown;
+    success?: unknown;
+    data?: { player?: { id?: unknown; username?: unknown } };
+  };
+  try {
+    body = (await res.json()) as typeof body;
+  } catch (error) {
+    throw new MojangUnavailableError(`playerdb.co answered ${res.status} without JSON`, {
+      cause: error,
+    });
+  }
+  if (body.success === true) {
+    const { id, username } = body.data?.player ?? {};
+    if (typeof id !== "string" || typeof username !== "string") {
+      throw new MojangUnavailableError("playerdb.co sent an unexpected profile");
+    }
+    return { uuid: dashedUuid(id), name: username };
+  }
+  if (body.code === "minecraft.invalid_username") return null;
+  throw new MojangUnavailableError(`playerdb.co answered ${res.status}: ${String(body.code)}`);
+}
+
+/** playerdb.co first and Mojang if it fails; throws only if both fail. */
+async function lookUp(fetchFn: typeof fetch, ref: string, mojangUrl: string) {
+  try {
+    return await fetchPlayerDb(fetchFn, ref);
+  } catch (playerDbError) {
+    try {
+      return await fetchProfile(fetchFn, mojangUrl);
+    } catch (mojangError) {
+      throw new MojangUnavailableError(
+        `${describeError(playerDbError)}; then ${describeError(mojangError)}`,
+      );
+    }
+  }
+}
+
+/**
+ * Whether `username` joined with `serverId` (the launcher's `join`); its profile if so.
+ * `sessionUrl` is Mojang's session server or a proxy of it (`MOJANG_SESSION_URL`).
+ */
+export function hasJoined(
+  fetchFn: typeof fetch,
+  sessionUrl: string,
+  username: string,
+  serverId: string,
+) {
   const query = new URLSearchParams({ username, serverId });
-  return fetchProfile(fetchFn, `${SESSION_SERVER}/hasJoined?${query}`);
+  return fetchProfile(fetchFn, `${sessionUrl}/hasJoined?${query}`);
 }
 
 /** The current owner of a Minecraft name, to add players to a list before they ever join. */
 export function profileByName(fetchFn: typeof fetch, name: string) {
-  return fetchProfile(fetchFn, `${PROFILES_API}/${encodeURIComponent(name)}`);
+  return lookUp(fetchFn, name, `${PROFILES_API}/${encodeURIComponent(name)}`);
 }
 
 /** A profile's current name. */
 export function profileByUuid(fetchFn: typeof fetch, uuid: string) {
-  return fetchProfile(fetchFn, `${SESSION_SERVER}/profile/${uuid.replaceAll("-", "")}`);
+  const id = uuid.replaceAll("-", "");
+  return lookUp(fetchFn, id, `${MOJANG_SESSION_URL}/profile/${id}`);
 }

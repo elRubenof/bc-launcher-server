@@ -6,6 +6,7 @@ import {
   createTestApp,
   createTestPlatform,
   jsonRequest,
+  mojangFetch,
   PROFILES,
   playerAuth,
   setupOwner,
@@ -93,6 +94,30 @@ describe("organization whitelist", () => {
     const res = await down.request("POST", "/api/admin/whitelist", { player: "Nyxar" });
     expect(res.status).toBe(502);
     expect(await res.json()).toMatchObject({ code: "mojang_unavailable" });
+  });
+
+  it("looks players up on playerdb.co and falls back to Mojang", async () => {
+    const mojang = mojangFetch();
+    const playerDbDown = await setup(async (input, init) =>
+      new URL(String(input)).host === "playerdb.co"
+        ? new Response("<html>bad gateway</html>", { status: 502 })
+        : mojang(input, init),
+    );
+    const viaMojang = await playerDbDown.request("POST", "/api/admin/whitelist", {
+      player: "Nyxar",
+    });
+    expect(viaMojang.status).toBe(201);
+
+    // As on Cloudflare: Mojang refuses, playerdb.co answers.
+    const mojangBlocked = await setup(async (input, init) =>
+      new URL(String(input)).host === "playerdb.co"
+        ? mojang(input, init)
+        : new Response("<html>blocked</html>", { status: 403 }),
+    );
+    const viaPlayerDb = await mojangBlocked.request("POST", "/api/admin/whitelist", {
+      player: NYXAR,
+    });
+    expect(viaPlayerDb.status).toBe(201);
   });
 
   it("revokes a running token when the player is removed", async () => {

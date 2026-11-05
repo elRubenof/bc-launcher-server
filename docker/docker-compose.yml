@@ -14,6 +14,8 @@ services:
     environment:
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
       JWT_SECRET: ${JWT_SECRET:-}
+      # Optional proxy of Mojang's session server (README → "Player identity"); not needed here.
+      MOJANG_SESSION_URL: ${MOJANG_SESSION_URL:-}
     volumes:
       - data:/data
 

@@ -53,10 +53,33 @@ function isHttpUrl(value: string) {
   }
 }
 
+/** The README section on player identity, Cloudflare and session proxies. */
+const PLAYER_IDENTITY_GUIDE_URL = "https://github.com/elRubenof/bc-launcher-server#player-identity";
+
 export function SettingsOrganizationPage() {
   const settings = useQuery(settingsQuery);
+  const organization = useQuery(organizationQuery);
   if (!settings.data) return null;
-  return <OrganizationForm settings={settings.data} />;
+  return (
+    <div className="flex flex-col gap-5">
+      {organization.data?.auth.type === "unverified" ? <UnverifiedPlayersAlert /> : null}
+      <OrganizationForm settings={settings.data} />
+    </div>
+  );
+}
+
+/** Shown while the server can't verify players (Cloudflare without a session proxy). */
+function UnverifiedPlayersAlert() {
+  const { t } = useI18n();
+  return (
+    <Alert className="flex-col gap-1.5 p-4">
+      <strong className="text-sm">{t("org.unverifiedTitle")}</strong>
+      <span className="text-foreground/85">{t("org.unverifiedBody")}</span>
+      <a href={PLAYER_IDENTITY_GUIDE_URL} target="_blank" rel="noreferrer" className="w-fit">
+        {t("org.unverifiedHowTo")}
+      </a>
+    </Alert>
+  );
 }
 
 function OrganizationForm({ settings }: { settings: OrganizationSettings }) {

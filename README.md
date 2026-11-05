@@ -18,6 +18,8 @@ One deployment is one organization. Pick one of the two targets.
 
 You need a Cloudflare account with R2 enabled (Cloudflare may ask for a payment method to enable R2, even within its free tier).
 
+> **Player identity isn't verified on Cloudflare** unless you add a session proxy, because Mojang blocks requests from Cloudflare Workers. See [Player identity](#player-identity) before relying on whitelists, bans or a private organization.
+
 1. Click the button and sign in. Cloudflare copies this repository to your GitHub or GitLab account and creates the Worker, a D1 database (`DB`) and an R2 bucket (`BLOBS`). You can keep the suggested names.
 2. Keep the build settings it fills in: build command `pnpm run build`, deploy command `pnpm run deploy` (it applies the database migrations, then deploys the Worker). No secrets are needed.
 3. Deploy. When the build finishes (a couple of minutes), [open the panel right away](#after-deploying-open-the-panel-right-away) at `https://<worker>.<your-subdomain>.workers.dev/admin`; the build log prints that address at the end. The `workers.dev` address is always enabled by the deployment (`workers_dev` in `wrangler.jsonc`), even if the Worker's Domains tab shows it switched off.
@@ -63,11 +65,40 @@ volumes:
 
 Start it with `docker compose up -d`, then [open the panel right away](#after-deploying-open-the-panel-right-away) at `https://launcher.example.com/admin`. Migrations run when the container starts. Back up the `data` volume.
 
-| Variable     | Required | Description                                                                                     |
-| ------------ | -------- | ----------------------------------------------------------------------------------------------- |
-| `PUBLIC_URL` | Yes      | The server's public origin (and base path, if any). Used for download links and secure cookies. |
-| `JWT_SECRET` | No       | See [Secrets](#secrets). If set, 32+ random characters.                                         |
-| `PORT`       | No       | Listening port inside the container (default `3000`).                                           |
+| Variable             | Required | Description                                                                                          |
+| -------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `PUBLIC_URL`         | Yes      | The server's public origin (and base path, if any). Used for download links and secure cookies.      |
+| `JWT_SECRET`         | No       | See [Secrets](#secrets). If set, 32+ random characters.                                              |
+| `PORT`               | No       | Listening port inside the container (default `3000`).                                                |
+| `MOJANG_SESSION_URL` | No       | A proxy of Mojang's session server; see [Player identity](#player-identity). Not needed with Docker. |
+
+### Player identity
+
+When a player signs in, the launcher tells Mojang it is joining with a one-time code, and the server asks Mojang's session server whether that player really did (`hasJoined`, the check Minecraft servers use). Only the real owner of the account can pass it, and the launcher never sends its Minecraft token to the server.
+
+- **Docker:** verified from the start; nothing to set up.
+- **Cloudflare:** Mojang blocks requests from Cloudflare Workers (`403`), so by default the server **trusts the name the launcher sends**. Discovery says so (`auth.type: "unverified"`) and the panel warns about it in Settings. What that means:
+  - Anyone can sign in to the launcher with another player's name. The whitelist, the blacklist and a private organization don't stop them from seeing the instances, their news and downloading their content. Treat a private organization on Cloudflare as public for anyone who knows a member's name.
+  - Your Minecraft server still verifies whoever joins it to play (online mode, its own whitelist), so playing is protected; the launcher's content isn't.
+  - Player names are still looked up on [playerdb.co](https://playerdb.co), so made-up names are refused.
+
+**Verifying on Cloudflare with a session proxy.** Run a small reverse proxy in front of Mojang's session server somewhere Mojang doesn't block (any VPS), and add a `MOJANG_SESSION_URL` variable to the Worker (Worker → Settings → Variables and Secrets, or `vars` in `wrangler.jsonc`) with its address. The server then asks Mojang through it and the check is the same as with Docker. With nginx:
+
+```nginx
+location /session/minecraft/ {
+    proxy_pass https://sessionserver.mojang.com/session/minecraft/;
+    proxy_set_header Host sessionserver.mojang.com;
+    proxy_ssl_server_name on;
+}
+```
+
+```text
+MOJANG_SESSION_URL=https://proxy.example.com/session/minecraft
+```
+
+Whoever runs the proxy could answer "yes" for any player, so only use one you control or trust. If the proxy is down, players can't sign in: the server never falls back to trusting names once a proxy is set.
+
+The panel looks player names up on playerdb.co first (Mojang as a fallback) and shows players' heads from crafthead.net.
 
 ### Secrets
 
@@ -103,7 +134,7 @@ pnpm lint && pnpm typecheck && pnpm test
 
 Run the server locally:
 
-- **Cloudflare Worker** (local D1 and R2): `pnpm dev:worker` → http://localhost:8787
+- **Cloudflare Worker** (local D1 and R2): `pnpm dev:worker`. Like on Cloudflare, players aren't verified unless `.dev.vars` sets `MOJANG_SESSION_URL` (locally, Mojang's own `https://sessionserver.mojang.com/session/minecraft` works) → http://localhost:8787
 - **Panel with hot reload**: with the Worker running, `pnpm dev:web` → http://localhost:5173
 - **Node**: copy `apps/api/.env.example` to `apps/api/.env`, run `pnpm build:web` once, then `pnpm --filter @bc-launcher-server/api dev:node` → http://localhost:3000
 - **Docker**: `docker compose -f docker/docker-compose.yml up --build` → http://localhost:3000

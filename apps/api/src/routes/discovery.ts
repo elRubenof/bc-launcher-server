@@ -19,7 +19,7 @@ async function discoveryDocument(db: Database, config: Config): Promise<Discover
     apiVersions: API_VERSIONS,
     minLauncherVersion: settings.minLauncherVersion,
     capabilities: [],
-    auth: { type: "mojang-session" },
+    auth: { type: config.playerAuth },
   };
 }
 

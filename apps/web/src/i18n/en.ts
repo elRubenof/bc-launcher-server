@@ -76,6 +76,10 @@ export const en: Messages = {
   "org.name": "Name",
   "org.description": "Description",
   "org.logo": "Logo",
+  "org.unverifiedTitle": "Player identity isn't verified",
+  "org.unverifiedBody":
+    "This server runs on Cloudflare, whose requests Mojang blocks, so it trusts the name the launcher sends. Anyone can use another player's name: the whitelist, the blacklist and a private organization don't stop them from seeing the instances or downloading their content. Your Minecraft server still verifies whoever joins to play. To verify here too, set up a proxy of Mojang's session server.",
+  "org.unverifiedHowTo": "How to set it up",
   "org.icon": "Icon",
   "org.imageInvalid": "Use a PNG, JPEG, WebP or GIF image.",
   "org.imageTooLarge": "The image can't be larger than 2 MB.",

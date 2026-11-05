@@ -14,6 +14,8 @@ describe("loadConfig", () => {
     expect(loadConfig(env)).toEqual({
       publicUrl: "https://launcher.example.com",
       jwtSecret: env.JWT_SECRET,
+      playerAuth: "mojang-session",
+      mojangSessionUrl: "https://sessionserver.mojang.com/session/minecraft",
     });
   });
 
@@ -30,10 +32,10 @@ describe("loadConfig", () => {
   });
 
   it("falls back to the default URL only without PUBLIC_URL", () => {
-    expect(loadConfig({}, "https://bc.example.workers.dev").publicUrl).toBe(
+    expect(loadConfig({}, { defaultUrl: "https://bc.example.workers.dev" }).publicUrl).toBe(
       "https://bc.example.workers.dev",
     );
-    expect(loadConfig(env, "https://bc.example.workers.dev").publicUrl).toBe(
+    expect(loadConfig(env, { defaultUrl: "https://bc.example.workers.dev" }).publicUrl).toBe(
       "https://launcher.example.com",
     );
   });
@@ -47,6 +49,18 @@ describe("loadConfig", () => {
     expect(() => loadConfig({ ...env, JWT_SECRET: "change-me" })).toThrow(
       "JWT_SECRET must be at least 32 characters",
     );
+  });
+
+  it("verifies players unless the Worker has no session proxy", () => {
+    const worker = { unverifiedWithoutSessionUrl: true };
+    expect(loadConfig(env).playerAuth).toBe("mojang-session");
+    expect(loadConfig(env, worker).playerAuth).toBe("unverified");
+    expect(
+      loadConfig({ ...env, MOJANG_SESSION_URL: "https://proxy.example.com/session/" }, worker),
+    ).toMatchObject({
+      playerAuth: "mojang-session",
+      mojangSessionUrl: "https://proxy.example.com/session",
+    });
   });
 
   it("rejects an invalid public URL", () => {

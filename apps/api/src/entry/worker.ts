@@ -13,6 +13,11 @@ interface Env {
   PUBLIC_URL?: string;
   /** Optional: without it, the server generates one and keeps it in D1 (`server_secrets`). */
   JWT_SECRET?: string;
+  /**
+   * Optional proxy of Mojang's session server, which refuses requests from Workers. Without it,
+   * player names aren't verified (`playerAuth: "unverified"`).
+   */
+  MOJANG_SESSION_URL?: string;
 }
 
 type Storage = Pick<Platform, "db" | "blobs" | "fetch">;
@@ -51,7 +56,14 @@ function resolvePlatform(env: Env, requestUrl: string): Promise<Platform> {
     platform = Promise.resolve()
       .then(() =>
         resolveConfig(
-          loadConfig({ PUBLIC_URL: env.PUBLIC_URL, JWT_SECRET: env.JWT_SECRET }, origin),
+          loadConfig(
+            {
+              PUBLIC_URL: env.PUBLIC_URL,
+              JWT_SECRET: env.JWT_SECRET,
+              MOJANG_SESSION_URL: env.MOJANG_SESSION_URL,
+            },
+            { defaultUrl: origin, unverifiedWithoutSessionUrl: true },
+          ),
           storage.db,
         ),
       )

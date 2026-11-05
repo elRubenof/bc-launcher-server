@@ -7,7 +7,7 @@ import {
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { isMember } from "../access";
 import { checkChallenge, createChallenge, signPlayerToken } from "../auth/player-tokens";
-import { describeError, hasJoined, MojangUnavailableError } from "../mojang";
+import { describeError, hasJoined, MojangUnavailableError, profileByName } from "../mojang";
 import type { AppEnv } from "../platform/types";
 import { upsertPlayer } from "../players";
 import { problem } from "../problem";
@@ -28,12 +28,17 @@ export function registerPlayerAuth(app: OpenAPIHono<AppEnv>) {
       return problem(c, 401, "invalid_challenge", "The challenge is invalid or expired");
     }
 
+    // `unverified` (Cloudflare without a session proxy): the name is trusted and only looked up,
+    // so anyone can claim any name. Chosen by configuration, never as a fallback when Mojang fails.
+    const verified = config.playerAuth === "mojang-session";
     let profile: Awaited<ReturnType<typeof hasJoined>>;
     try {
-      profile = await hasJoined(c.var.platform.fetch, username, serverId);
+      profile = verified
+        ? await hasJoined(c.var.platform.fetch, config.mojangSessionUrl, username, serverId)
+        : await profileByName(c.var.platform.fetch, username);
     } catch (error) {
       if (!(error instanceof MojangUnavailableError)) throw error;
-      console.error(`hasJoined failed: ${describeError(error)}`);
+      console.error(`${verified ? "hasJoined" : "Profile lookup"} failed: ${describeError(error)}`);
       return problem(c, 502, "mojang_unavailable", "Mojang's session server is unavailable");
     }
     if (!profile) return problem(c, 401, "not_joined", "Mojang didn't confirm the sign-in");
