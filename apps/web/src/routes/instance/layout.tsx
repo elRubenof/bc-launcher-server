@@ -11,6 +11,7 @@ import { StatusBadge } from "../instances";
 const TABS = [
   { to: "/admin/instances/$id", labelKey: "instance.tab.general", exact: true },
   { to: "/admin/instances/$id/appearance", labelKey: "instance.tab.appearance", exact: false },
+  { to: "/admin/instances/$id/content", labelKey: "instance.tab.content", exact: false },
 ] as const;
 
 export function InstanceLayout({ id }: { id: string }) {

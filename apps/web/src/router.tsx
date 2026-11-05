@@ -10,6 +10,7 @@ import { ApiError } from "./lib/api";
 import { meQuery, setupStatusQuery } from "./lib/queries";
 import { HomePage } from "./routes/home";
 import { InstanceAppearancePage } from "./routes/instance/appearance";
+import { InstanceContentPage } from "./routes/instance/content";
 import { InstanceGeneralPage } from "./routes/instance/general";
 import { InstanceLayout } from "./routes/instance/layout";
 import { InstancesPage } from "./routes/instances";
@@ -124,6 +125,14 @@ const instanceAppearanceRoute = createRoute({
   },
 });
 
+const instanceContentRoute = createRoute({
+  getParentRoute: () => instanceRoute,
+  path: "/content",
+  component: function Content() {
+    return <InstanceContentPage id={instanceRoute.useParams().id} />;
+  },
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => panelRoute,
   path: "/admin/settings",
@@ -155,7 +164,11 @@ const routeTree = rootRoute.addChildren([
   panelRoute.addChildren([
     homeRoute,
     instancesRoute,
-    instanceRoute.addChildren([instanceGeneralRoute, instanceAppearanceRoute]),
+    instanceRoute.addChildren([
+      instanceGeneralRoute,
+      instanceAppearanceRoute,
+      instanceContentRoute,
+    ]),
     settingsRoute.addChildren([
       settingsOrganizationRoute,
       settingsAdminsRoute,
