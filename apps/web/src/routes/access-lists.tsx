@@ -405,7 +405,7 @@ export function BanDialog({
           {instances ? (
             <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
               <legend className="mb-2 p-0 font-semibold">{t("ban.scope")}</legend>
-              <label className="flex cursor-pointer gap-2.5 rounded-md border border-input p-3 has-checked:border-primary has-checked:bg-secondary">
+              <label className="flex cursor-pointer gap-2.5 rounded-md border border-input p-3 has-[input:checked]:border-primary has-[input:checked]:bg-secondary">
                 <input
                   type="radio"
                   name="ban-scope"
@@ -422,7 +422,7 @@ export function BanDialog({
               </label>
               <label
                 className={cn(
-                  "flex cursor-pointer gap-2.5 rounded-md border border-input p-3 has-checked:border-primary has-checked:bg-secondary",
+                  "flex cursor-pointer gap-2.5 rounded-md border border-input p-3 has-[input:checked]:border-primary has-[input:checked]:bg-secondary",
                   instances.length === 0 && "cursor-default opacity-60",
                 )}
               >
@@ -483,7 +483,7 @@ export function BanDialog({
               {DURATIONS.map((option) => (
                 <label
                   key={option}
-                  className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-input px-3 has-checked:border-primary has-checked:bg-secondary has-focus-visible:ring-2 has-focus-visible:ring-ring"
+                  className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-input px-3 has-[input:checked]:border-primary has-[input:checked]:bg-secondary has-focus-visible:ring-2 has-focus-visible:ring-ring"
                 >
                   <input
                     type="radio"

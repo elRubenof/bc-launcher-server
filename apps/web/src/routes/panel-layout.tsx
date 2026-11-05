@@ -11,6 +11,7 @@ import { ChangePasswordDialog } from "./change-password-dialog";
 const NAV_ITEMS = [
   { to: "/admin", labelKey: "nav.home", exact: true },
   { to: "/admin/instances", labelKey: "nav.instances", exact: false },
+  { to: "/admin/players", labelKey: "nav.players", exact: false },
   { to: "/admin/settings", labelKey: "nav.settings", exact: false },
 ] as const;
 

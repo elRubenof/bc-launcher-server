@@ -17,6 +17,12 @@ import { InstanceLayout } from "./routes/instance/layout";
 import { InstancesPage } from "./routes/instances";
 import { LoginPage } from "./routes/login";
 import { PanelLayout } from "./routes/panel-layout";
+import {
+  OrgBlacklistPage,
+  OrgWhitelistPage,
+  PlayersLayout,
+  PlayersListPage,
+} from "./routes/players";
 import { PublicPage } from "./routes/public-page";
 import { SettingsActivityPage } from "./routes/settings-activity";
 import { SettingsAdminsPage } from "./routes/settings-admins";
@@ -142,6 +148,30 @@ const instanceAccessRoute = createRoute({
   },
 });
 
+const playersRoute = createRoute({
+  getParentRoute: () => panelRoute,
+  path: "/admin/players",
+  component: PlayersLayout,
+});
+
+const playersListRoute = createRoute({
+  getParentRoute: () => playersRoute,
+  path: "/",
+  component: PlayersListPage,
+});
+
+const orgWhitelistRoute = createRoute({
+  getParentRoute: () => playersRoute,
+  path: "/whitelist",
+  component: OrgWhitelistPage,
+});
+
+const orgBlacklistRoute = createRoute({
+  getParentRoute: () => playersRoute,
+  path: "/blacklist",
+  component: OrgBlacklistPage,
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => panelRoute,
   path: "/admin/settings",
@@ -179,6 +209,7 @@ const routeTree = rootRoute.addChildren([
       instanceContentRoute,
       instanceAccessRoute,
     ]),
+    playersRoute.addChildren([playersListRoute, orgWhitelistRoute, orgBlacklistRoute]),
     settingsRoute.addChildren([
       settingsOrganizationRoute,
       settingsAdminsRoute,
