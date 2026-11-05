@@ -436,7 +436,6 @@ export const en: Messages = {
   "content.leave.stay": "Keep editing",
   "content.editor": "Content editor",
   "home.allInstances": "See all",
-  "home.contentLine": "Content v{version} · {when} · {files} files",
   "content.restore.title": "You have unapplied changes",
   "content.restore.description": "You left {count} pending changes {when} in this browser.",
   "content.restore.serverChanged":
@@ -585,4 +584,14 @@ export const en: Messages = {
   "org.goingPrivateNote.one":
     "When going private you can add the player who already joined to the whitelist, so they aren't left out by accident.",
   "action.org.visibility_changed.whitelisted.one": "1 player added to the whitelist",
+  "home.contentShort": "v{version} · {files} files",
+  "home.playersWithAccess": "Players with access",
+  "home.hidden": "Hidden in the launcher",
+  "home.applied": "Content applied {when}",
+  "home.appliedBy": "Content applied {when} by {admin}",
+  "home.recentPlayers": "Recent players",
+  "home.allPlayers": "See all",
+  "home.noPlayers": "No player has joined yet.",
+  "home.recentActivity": "Recent activity",
+  "home.allActivity": "See all",
 };

@@ -442,7 +442,6 @@ export const es = {
   "content.leave.stay": "Seguir editando",
   "content.editor": "Editor de contenido",
   "home.allInstances": "Ver todas",
-  "home.contentLine": "Contenido v{version} · {when} · {files} archivos",
   "content.restore.title": "Tienes cambios sin aplicar",
   "content.restore.description": "Dejaste {count} cambios pendientes {when} en este navegador.",
   "content.restore.serverChanged":
@@ -592,6 +591,16 @@ export const es = {
   "org.goingPrivateNote.one":
     "Al pasar a privada podrás añadir a la whitelist al jugador que ya ha entrado, para no dejarlo fuera sin querer.",
   "action.org.visibility_changed.whitelisted.one": "1 jugador añadido a la whitelist",
+  "home.contentShort": "v{version} · {files} archivos",
+  "home.playersWithAccess": "Jugadores con acceso",
+  "home.hidden": "Oculta en el launcher",
+  "home.applied": "Contenido aplicado {when}",
+  "home.appliedBy": "Contenido aplicado {when} por {admin}",
+  "home.recentPlayers": "Jugadores recientes",
+  "home.allPlayers": "Ver todos",
+  "home.noPlayers": "Todavía no ha entrado ningún jugador.",
+  "home.recentActivity": "Actividad reciente",
+  "home.allActivity": "Ver toda",
 } as const;
 
 export type MessageKey = keyof typeof es;

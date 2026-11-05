@@ -54,8 +54,8 @@ export interface ActivityFilters {
   type?: string | undefined;
 }
 
-export function activityPage(filters: ActivityFilters, before?: number) {
-  const query = new URLSearchParams({ limit: "30" });
+export function activityPage(filters: ActivityFilters, before?: number, limit = 30) {
+  const query = new URLSearchParams({ limit: String(limit) });
   if (filters.adminId) query.set("adminId", filters.adminId);
   if (filters.type) query.set("type", filters.type);
   if (before) query.set("before", String(before));

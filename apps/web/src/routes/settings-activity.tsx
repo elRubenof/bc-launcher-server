@@ -10,7 +10,7 @@ import { type ActivityFilters, activityPage, adminsQuery } from "@/lib/queries";
 
 const TYPES = ["admin", "org", "instance", "player", "whitelist"] as const;
 
-const DOT: Record<string, string> = {
+export const DOT: Record<string, string> = {
   admin: "bg-warning",
   org: "bg-link",
   instance: "bg-success",
@@ -151,7 +151,7 @@ function fieldList(details: Record<string, unknown>, t: T) {
 }
 
 /** Turns an audit log entry into a sentence; unknown actions show their code. */
-function describe(
+export function describe(
   entry: ActivityEntry,
   t: T,
   language: Language,
