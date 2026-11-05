@@ -29,7 +29,7 @@ pnpm typecheck        # tsc in every package that defines a typecheck script
 pnpm test             # Vitest
 pnpm openapi          # regenerate packages/contracts/openapi.json (commit it with any contract change)
 pnpm db:generate      # generate a migration from packages/db/src/schema.ts (drizzle-kit)
-pnpm dev:worker       # build the panel, apply local D1 migrations, wrangler dev on :8787 (optional overrides in .dev.vars, see .dev.vars.example)
+pnpm dev:worker       # build the panel, apply local D1 migrations, wrangler dev on :8787 (no config needed; PUBLIC_URL / JWT_SECRET overrides go in a gitignored .dev.vars)
 pnpm dev:web          # panel with hot reload on :5173, proxying the API to :8787 (API_URL to change it)
 pnpm build:web        # build the panel to apps/web/dist (served by both runtimes)
 pnpm run build        # = build:web; the build command of Deploy to Cloudflare / Workers Builds
@@ -109,7 +109,7 @@ tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 - **Admin API** (`/api/admin/*`): every route needs a session except setup and login (`requireAdmin`), and every mutating request must come from the deployment's own origin (`sameOrigin`). The Vite dev proxy rewrites `Origin` so this also works on :5173. Handlers that editors can't use start with `managersOnly(c)`; handlers that act on another account go through `findTarget()` in `routes/admins.ts`, which refuses your own account and the owner's. Every change an admin makes is recorded in `audit_log` with a stable `action` code, and the panel turns each code into a sentence (`routes/settings-activity.tsx`); add both when adding an action.
 - **Panel UI:** all user-facing text goes through `useI18n().t()`, with the key added to **both** `src/i18n/es.ts` and `en.ts`. Follow the panel mockups (dark theme, colors in `src/index.css`). Accessible markup: real buttons, links and labelled inputs.
 - **Secrets:** never commit real secrets, tokens or signing keys. Never log passwords, session tokens or JWTs.
-- **Deploy to Cloudflare** reads the root `package.json`: the `build` and `deploy` scripts (prefilled as build and deploy commands), the `cloudflare.bindings` descriptions shown in the flow, and `.dev.vars.example` for the secrets it asks for (all commented out, so it asks for none). The root `deploy` script shadows pnpm's own `pnpm deploy` command, so the Dockerfile deletes it before using that command. The repo root must stay a deployable Worker (no `database_id` in `wrangler.jsonc`, resources provisioned by the flow). Keep `README.md` → "Deploy" in step with any change to secrets, variables or deployment.
+- **Deploy to Cloudflare** reads the root `package.json`: the `build` and `deploy` scripts (prefilled as build and deploy commands), the `cloudflare.bindings` descriptions shown in the flow. It would also ask for the secrets listed in a `.dev.vars.example` or `.env.example` at the root; there are none, because the server needs no secret configuration. The root `deploy` script shadows pnpm's own `pnpm deploy` command, so the Dockerfile deletes it before using that command. The repo root must stay a deployable Worker (no `database_id` in `wrangler.jsonc`, resources provisioned by the flow). Keep `README.md` → "Deploy" in step with any change to secrets, variables or deployment.
 
 ## Server design (agreed, not all implemented yet)
 
