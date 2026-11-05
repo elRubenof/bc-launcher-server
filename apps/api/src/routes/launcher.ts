@@ -2,19 +2,23 @@ import {
   getBlobRoute,
   getManifestRoute,
   type LauncherInstance,
+  launcherNewsRoute,
   listLauncherInstancesRoute,
   type Manifest,
+  NEWS_PAGE_SIZE,
 } from "@bc-launcher-server/contracts";
 import { type Database, schema } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, lt, lte, or, sql } from "drizzle-orm";
 import { playableBy } from "../access";
+import { base64UrlDecode, base64UrlEncode } from "../auth/crypto";
 import { readFiles } from "../content";
 import type { InstanceRow } from "../instances";
 import type { AppEnv, Config } from "../platform/types";
 import { problem } from "../problem";
 import { assetUrl, readSettings, type SettingsRow } from "../settings";
 import { checkBlobSignature, signedBlobUrl, urlWindow } from "../signed-urls";
+import { newsOrder } from "./news";
 
 function toLauncherInstance(
   row: InstanceRow,
@@ -46,6 +50,45 @@ async function playableInstance(db: Database, id: string, playerUuid: string) {
     .from(schema.instances)
     .where(and(eq(schema.instances.id, id), playableBy(db, playerUuid, new Date())));
   return row ?? null;
+}
+
+/** Where a page of news ends: the last item's position in `newsOrder`. */
+type NewsCursor = [pinned: 0 | 1, publishedAt: number, id: string];
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function encodeCursor(cursor: NewsCursor) {
+  return base64UrlEncode(encoder.encode(JSON.stringify(cursor)));
+}
+
+function decodeCursor(value: string): NewsCursor | null {
+  try {
+    const parsed: unknown = JSON.parse(decoder.decode(base64UrlDecode(value)));
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === 3 &&
+      (parsed[0] === 0 || parsed[0] === 1) &&
+      Number.isSafeInteger(parsed[1]) &&
+      typeof parsed[2] === "string"
+    ) {
+      return parsed as NewsCursor;
+    }
+  } catch {
+    // Falls through: not one of our cursors.
+  }
+  return null;
+}
+
+/** News after `cursor` in `newsOrder` (pinned desc, published_at desc, id desc). */
+function afterCursor([pinned, publishedAt, id]: NewsCursor) {
+  const date = new Date(publishedAt);
+  const samePin = sql`${schema.news.pinned} = ${pinned}`;
+  return or(
+    sql`${schema.news.pinned} < ${pinned}`,
+    and(samePin, lt(schema.news.publishedAt, date)),
+    and(samePin, eq(schema.news.publishedAt, date), lt(schema.news.id, id)),
+  );
 }
 
 export function registerLauncher(app: OpenAPIHono<AppEnv>) {
@@ -118,5 +161,52 @@ export function registerLauncher(app: OpenAPIHono<AppEnv>) {
       // Content-addressed: the bytes behind a hash never change.
       "Cache-Control": "public, max-age=31536000, immutable",
     });
+  });
+
+  app.openapi(launcherNewsRoute, async (c) => {
+    const { db, config } = c.var.platform;
+    const { cursor: rawCursor } = c.req.valid("query");
+    const cursor = rawCursor ? decodeCursor(rawCursor) : null;
+    if (rawCursor && !cursor) return problem(c, 400, "invalid_cursor", "Invalid cursor");
+
+    const instance = await playableInstance(db, c.req.valid("param").id, c.var.player.uuid);
+    if (!instance) return problem(c, 404, "not_found", "No such instance");
+
+    const rows = await db
+      .select()
+      .from(schema.news)
+      .where(
+        and(
+          eq(schema.news.instanceId, instance.id),
+          // Scheduled news stays hidden until its time.
+          lte(schema.news.publishedAt, new Date()),
+          cursor ? afterCursor(cursor) : undefined,
+        ),
+      )
+      .orderBy(...newsOrder)
+      // One extra row tells whether there is another page.
+      .limit(NEWS_PAGE_SIZE + 1);
+
+    const page = rows.slice(0, NEWS_PAGE_SIZE);
+    const last = page.at(-1);
+    return c.json(
+      {
+        items: page.map((news) => ({
+          id: news.id,
+          title: news.title,
+          body: news.body,
+          imageUrl: assetUrl(config, news.imageBlob),
+          link: news.link,
+          pinned: news.pinned,
+          publishedAt: news.publishedAt.toISOString(),
+        })),
+        nextCursor:
+          rows.length > NEWS_PAGE_SIZE && last
+            ? encodeCursor([last.pinned ? 1 : 0, last.publishedAt.getTime(), last.id])
+            : null,
+      },
+      200,
+      { "Cache-Control": "private, no-cache" },
+    );
   });
 }

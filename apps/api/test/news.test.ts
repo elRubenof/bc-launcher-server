@@ -1,8 +1,17 @@
 import type { NewsItem } from "@bc-launcher-server/contracts";
 import { schema } from "@bc-launcher-server/db";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
+import { sha256Hex } from "../src/auth/crypto";
 import { cleanupOrphanBlobs, ORPHAN_GRACE_MS } from "../src/cleanup";
-import { createTestApp, createTestPlatform, jsonRequest, setupOwner, signInAs } from "./helpers";
+import {
+  createTestApp,
+  createTestPlatform,
+  jsonRequest,
+  playerAuth,
+  setupOwner,
+  signInAs,
+} from "./helpers";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 7, 7, 7]);
 
@@ -135,5 +144,113 @@ describe("news (panel)", () => {
 
     expect((await request("DELETE", "/api/admin/instances/serie-t3")).status).toBe(204);
     expect(await platform.db.select().from(schema.news)).toEqual([]);
+  });
+});
+
+describe("news (launcher)", () => {
+  async function withContent() {
+    const context = await setup();
+    const { app, owner, request } = context;
+    const mod = new TextEncoder().encode("sodium");
+    const sha256 = await sha256Hex(mod);
+    await app.request(`/api/admin/blobs/${sha256}`, {
+      method: "PUT",
+      headers: { Cookie: owner, Origin: "http://localhost", "Content-Length": "6" },
+      body: mod,
+    });
+    await request("PUT", "/api/admin/instances/serie-t3/content", {
+      expectedContentVersion: 0,
+      mcVersion: "1.21.1",
+      loader: "vanilla",
+      loaderVersion: null,
+      managedDirs: [],
+      files: [{ path: "mods/sodium.jar", sha256, policy: "always" }],
+    });
+    const player = await playerAuth(app, "Nyxar");
+    const news = async (query = "") => {
+      const res = await app.request(`/api/v1/instances/serie-t3/news${query}`, {
+        headers: player,
+      });
+      return res;
+    };
+    return { ...context, news };
+  }
+
+  type Page = { items: { title: string; pinned: boolean }[]; nextCursor: string | null };
+
+  it("serves published news, pinned first, and hides scheduled news", async () => {
+    const { request, news } = await withContent();
+    await request("POST", base, {
+      ...ITEM,
+      title: "Antigua",
+      publishedAt: "2026-01-01T00:00:00.000Z",
+    });
+    await request("POST", base, { ...ITEM, title: "Reciente" });
+    await request("POST", base, {
+      ...ITEM,
+      title: "Fijada",
+      pinned: true,
+      publishedAt: "2025-01-01T00:00:00.000Z",
+    });
+    await request("POST", base, {
+      ...ITEM,
+      title: "Programada",
+      publishedAt: new Date(Date.now() + 3600_000).toISOString(),
+    });
+
+    const res = await news();
+    expect(res.status).toBe(200);
+    const page = (await res.json()) as Page;
+    expect(page.items.map((item) => item.title)).toEqual(["Fijada", "Reciente", "Antigua"]);
+    expect(page.nextCursor).toBeNull();
+    expect(page.items[1]).toEqual({
+      id: expect.any(String),
+      title: "Reciente",
+      body: ITEM.body,
+      imageUrl: null,
+      link: ITEM.link,
+      pinned: false,
+      publishedAt: expect.any(String),
+    });
+  });
+
+  it("pages through news with a cursor", async () => {
+    const { platform, news } = await withContent();
+    // 45 items with some equal dates, to check the tie-breaker.
+    await platform.db.insert(schema.news).values(
+      Array.from({ length: 45 }, (_, i) => ({
+        id: crypto.randomUUID(),
+        instanceId: "serie-t3",
+        title: `N${i}`,
+        body: "",
+        pinned: i % 10 === 0,
+        publishedAt: new Date(Date.UTC(2026, 0, 1 + Math.floor(i / 3))),
+      })),
+    );
+
+    const titles: string[] = [];
+    let cursor: string | null = null;
+    let pages = 0;
+    do {
+      const page = (await (await news(cursor ? `?cursor=${cursor}` : "")).json()) as Page;
+      titles.push(...page.items.map((item) => item.title));
+      cursor = page.nextCursor;
+      pages++;
+    } while (cursor);
+
+    expect(pages).toBe(3);
+    expect(new Set(titles).size).toBe(45);
+    expect(titles.slice(0, 5)).toEqual(["N40", "N30", "N20", "N10", "N0"]);
+    expect((await news("?cursor=nope")).status).toBe(400);
+  });
+
+  it("is invisible when the player can't play the instance", async () => {
+    const { platform, news, app } = await withContent();
+    await platform.db
+      .update(schema.instances)
+      .set({ access: "whitelist" })
+      .where(eq(schema.instances.id, "serie-t3"));
+    expect((await news()).status).toBe(404);
+    expect((await app.request("/api/v1/instances/serie-t3/news")).status).toBe(401);
   });
 });
