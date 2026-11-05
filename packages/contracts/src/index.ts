@@ -14,3 +14,4 @@ export * from "./player-auth";
 export * from "./players";
 export * from "./problem";
 export * from "./settings";
+export * from "./updates";

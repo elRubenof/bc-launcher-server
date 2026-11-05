@@ -83,7 +83,7 @@ Players add the server from the public page (`/`), which links to the launcher d
 
 ### Updating
 
-Releases are `vX.Y.Z` tags; see [Releases](https://github.com/elRubenof/bc-launcher-server/releases). Database migrations apply on their own.
+Releases are `vX.Y.Z` tags; see [Releases](https://github.com/elRubenof/bc-launcher-server/releases). When there is a newer one, the panel shows it to the owner and admins (the server checks GitHub every few hours). Updating is manual; database migrations apply on their own.
 
 - **Cloudflare:** merge the new release into your copy of the repository (e.g. `git pull https://github.com/elRubenof/bc-launcher-server vX.Y.Z` and push). Cloudflare builds and deploys every push.
 - **Docker:** change the image tag (or `docker compose pull` for `latest` / `0.1`) and `docker compose up -d`.

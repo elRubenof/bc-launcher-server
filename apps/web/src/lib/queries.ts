@@ -17,6 +17,7 @@ import type {
   PlayerDetail,
   PlayerSummary,
   SaveNews,
+  ServerUpdates,
   UpdateInstance,
   UpdateOrganizationSettings,
   WhitelistEntry,
@@ -28,6 +29,14 @@ export const meQuery = queryOptions({
   queryKey: ["me"],
   queryFn: () => apiRequest<Admin>("GET", "/api/admin/auth/me"),
   staleTime: 60_000,
+});
+
+/** Whether a newer server release exists (owner and admins; the server checks GitHub). */
+export const updatesQuery = queryOptions({
+  queryKey: ["updates"],
+  queryFn: () => apiRequest<ServerUpdates>("GET", "/api/admin/updates"),
+  staleTime: 3600_000,
+  retry: false,
 });
 
 export const setupStatusQuery = queryOptions({

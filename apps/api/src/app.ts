@@ -21,6 +21,7 @@ import { registerPlayerAuth } from "./routes/player-auth";
 import { registerPlayers } from "./routes/players";
 import { registerSettings } from "./routes/settings";
 import { registerSetup } from "./routes/setup";
+import { registerUpdates } from "./routes/updates";
 
 export function createApp(resolvePlatform: PlatformResolver) {
   const app = new OpenAPIHono<AppEnv>({
@@ -73,6 +74,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
   registerAssets(app);
   registerAdmins(app);
   registerActivity(app);
+  registerUpdates(app);
   // Before the instance routes: `/instances/{id}/{kind}` would also match `/content`, `/whitelist`...
   registerContent(app);
   registerAccessLists(app);

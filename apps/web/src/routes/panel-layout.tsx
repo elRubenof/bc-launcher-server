@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { LogOutIcon } from "lucide-react";
+import { ArrowUpCircleIcon, LogOutIcon } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { LanguageSelect } from "@/components/language-select";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/i18n";
-import { api, meQuery, organizationQuery } from "@/lib/queries";
+import { api, meQuery, organizationQuery, updatesQuery } from "@/lib/queries";
 import { ChangePasswordDialog } from "./change-password-dialog";
 
 const NAV_ITEMS = [
@@ -73,6 +73,7 @@ function Sidebar() {
       </ul>
 
       <div className="flex flex-col gap-2 border-t border-border pt-4 md:mt-auto">
+        {me.data && me.data.role !== "editor" ? <UpdateNotice /> : null}
         {me.data ? (
           <div className="flex items-center gap-2.5 px-1.5">
             <div
@@ -100,5 +101,40 @@ function Sidebar() {
         <LanguageSelect className="px-1.5" />
       </div>
     </nav>
+  );
+}
+
+/** Where the README explains how to update each kind of deployment. */
+const UPDATE_GUIDE_URL = "https://github.com/elRubenof/bc-launcher-server#updating";
+
+/** Shown to the owner and admins when a newer server release is published. */
+function UpdateNotice() {
+  const { t } = useI18n();
+  const updates = useQuery(updatesQuery);
+  if (!updates.data?.updateAvailable || !updates.data.latest) return null;
+
+  return (
+    <section
+      aria-label={t("updates.label")}
+      className="flex flex-col gap-1.5 rounded-md border border-primary/40 bg-primary/10 p-3 text-[13px]"
+    >
+      <p className="m-0 flex items-center gap-1.5 font-semibold">
+        <ArrowUpCircleIcon aria-hidden="true" className="size-4 shrink-0 text-primary" />
+        {t("updates.available", { version: updates.data.latest })}
+      </p>
+      <p className="m-0 text-muted-foreground">
+        {t("updates.current", { version: updates.data.current })}
+      </p>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {updates.data.url ? (
+          <a href={updates.data.url} target="_blank" rel="noreferrer" className="text-primary">
+            {t("updates.notes")}
+          </a>
+        ) : null}
+        <a href={UPDATE_GUIDE_URL} target="_blank" rel="noreferrer" className="text-primary">
+          {t("updates.howTo")}
+        </a>
+      </div>
+    </section>
   );
 }

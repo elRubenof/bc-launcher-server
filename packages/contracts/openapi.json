@@ -505,6 +505,36 @@
           "admin"
         ]
       },
+      "ServerUpdates": {
+        "type": "object",
+        "properties": {
+          "current": {
+            "type": "string"
+          },
+          "latest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "updateAvailable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "current",
+          "latest",
+          "url",
+          "updateAvailable"
+        ]
+      },
       "InstanceContent": {
         "type": "object",
         "properties": {
@@ -3023,6 +3053,47 @@
           },
           "401": {
             "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/updates": {
+      "get": {
+        "summary": "Whether a newer server release is published",
+        "description": "Compares this server's version with the latest release on GitHub, checked at most every few hours. Owner and admins only.",
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "The current and latest versions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerUpdates"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only the owner and admins can see this (`forbidden`).",
             "content": {
               "application/problem+json": {
                 "schema": {
