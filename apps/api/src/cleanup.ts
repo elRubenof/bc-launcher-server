@@ -6,13 +6,14 @@ export const ORPHAN_GRACE_MS = 24 * 3600 * 1000;
 /** Deletions per run: Workers limit the subrequests of one invocation. */
 const MAX_DELETES = 200;
 
-/** Every sha256 something points to: instance files, instance images and organization images. */
+/** Every sha256 something points to: instance files and images, news images and organization images. */
 const referenced = sql`(
   select ${schema.instanceFiles.blobSha256} from ${schema.instanceFiles}
   union select ${schema.instances.backgroundBlob} from ${schema.instances}
   union select ${schema.instances.iconBlob} from ${schema.instances} where ${schema.instances.iconBlob} is not null
   union select ${schema.settings.logoBlob} from ${schema.settings} where ${schema.settings.logoBlob} is not null
   union select ${schema.settings.iconBlob} from ${schema.settings} where ${schema.settings.iconBlob} is not null
+  union select ${schema.news.imageBlob} from ${schema.news} where ${schema.news.imageBlob} is not null
 )`;
 
 const unreferenced = notInArray(schema.blobs.sha256, referenced);

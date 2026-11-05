@@ -8,6 +8,7 @@ export * from "./discovery";
 export * from "./instances";
 export * from "./launcher";
 export * from "./loaders";
+export * from "./news";
 export * from "./paths";
 export * from "./player-auth";
 export * from "./players";

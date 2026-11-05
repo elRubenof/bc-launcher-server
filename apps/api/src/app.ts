@@ -16,6 +16,7 @@ import { registerDiscovery } from "./routes/discovery";
 import { registerInstances } from "./routes/instances";
 import { registerLauncher } from "./routes/launcher";
 import { registerLoaders } from "./routes/loaders";
+import { registerNews } from "./routes/news";
 import { registerPlayerAuth } from "./routes/player-auth";
 import { registerPlayers } from "./routes/players";
 import { registerSettings } from "./routes/settings";
@@ -75,6 +76,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
   // Before the instance routes: `/instances/{id}/{kind}` would also match `/content`, `/whitelist`...
   registerContent(app);
   registerAccessLists(app);
+  registerNews(app);
   registerPlayers(app);
   registerInstances(app);
   registerBlobs(app);

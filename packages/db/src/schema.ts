@@ -166,6 +166,33 @@ export const instanceManagedDirs = sqliteTable(
 );
 
 /**
+ * News of an instance (there is no organization-wide news). `published_at` in the future means
+ * scheduled: the launcher doesn't see it until then.
+ */
+export const news = sqliteTable(
+  "news",
+  {
+    id: text("id").primaryKey(),
+    instanceId: text("instance_id")
+      .notNull()
+      .references(() => instances.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    /** Markdown. */
+    body: text("body").notNull(),
+    imageBlob: text("image_blob").references(() => blobs.sha256),
+    /** Target of the launcher's "Open" button. */
+    link: text("link"),
+    pinned: integer("pinned", { mode: "boolean" }).notNull().default(false),
+    publishedAt: timestamp("published_at").notNull(),
+    createdBy: text("created_by").references(() => admins.id, { onDelete: "set null" }),
+    updatedBy: text("updated_by").references(() => admins.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().default(now),
+    updatedAt: timestamp("updated_at").notNull().default(now),
+  },
+  (table) => [index("news_instance").on(table.instanceId, table.pinned, table.publishedAt)],
+);
+
+/**
  * Minecraft players: everyone who signed in with the launcher, plus those added to a list by name
  * before ever joining (`first_seen_at` null).
  */
