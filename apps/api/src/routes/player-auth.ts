@@ -7,7 +7,7 @@ import {
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { isMember } from "../access";
 import { checkChallenge, createChallenge, signPlayerToken } from "../auth/player-tokens";
-import { hasJoined, MojangUnavailableError } from "../mojang";
+import { describeError, hasJoined, MojangUnavailableError } from "../mojang";
 import type { AppEnv } from "../platform/types";
 import { upsertPlayer } from "../players";
 import { problem } from "../problem";
@@ -33,7 +33,7 @@ export function registerPlayerAuth(app: OpenAPIHono<AppEnv>) {
       profile = await hasJoined(c.var.platform.fetch, username, serverId);
     } catch (error) {
       if (!(error instanceof MojangUnavailableError)) throw error;
-      console.error("hasJoined failed", error);
+      console.error(`hasJoined failed: ${describeError(error)}`);
       return problem(c, 502, "mojang_unavailable", "Mojang's session server is unavailable");
     }
     if (!profile) return problem(c, 401, "not_joined", "Mojang didn't confirm the sign-in");

@@ -18,6 +18,12 @@ export function dashedUuid(id: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+/** One line for the logs: the message and its cause (the Workers log viewer drops both). */
+export function describeError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  return error.cause ? `${error.message} (${describeError(error.cause)})` : error.message;
+}
+
 /** Fetches a profile (`{id, name}`); `null` when Mojang says there is none (204 or 404). */
 async function fetchProfile(fetchFn: typeof fetch, url: string): Promise<Player | null> {
   let res: Response;
@@ -27,7 +33,13 @@ async function fetchProfile(fetchFn: typeof fetch, url: string): Promise<Player 
     throw new MojangUnavailableError(`Couldn't reach ${new URL(url).host}`, { cause: error });
   }
   if (res.status === 204 || res.status === 404) return null;
-  if (!res.ok) throw new MojangUnavailableError(`${new URL(url).host} answered ${res.status}`);
+  if (!res.ok) {
+    // The start of the body says who refused (a firewall page, a rate limit message...).
+    const body = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
+    throw new MojangUnavailableError(
+      `${new URL(url).host} answered ${res.status}${body ? `: ${body}` : ""}`,
+    );
+  }
 
   let body: unknown;
   try {

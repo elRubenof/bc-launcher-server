@@ -22,7 +22,7 @@ import { and, desc, eq } from "drizzle-orm";
 import type { Context } from "hono";
 import { activeBan } from "../access";
 import { instanceExists } from "../instances";
-import { MojangUnavailableError, profileByName, profileByUuid } from "../mojang";
+import { describeError, MojangUnavailableError, profileByName, profileByUuid } from "../mojang";
 import type { AppEnv } from "../platform/types";
 import { readPlayer, upsertPlayer } from "../players";
 import { problem } from "../problem";
@@ -52,7 +52,7 @@ async function resolveOrFail(c: Context<AppEnv>, ref: string) {
     return player ?? problem(c, 404, "player_not_found", "No Minecraft player with that name");
   } catch (error) {
     if (!(error instanceof MojangUnavailableError)) throw error;
-    console.error("Mojang profile lookup failed", error);
+    console.error(`Mojang profile lookup failed: ${describeError(error)}`);
     return problem(c, 502, "mojang_unavailable", "Mojang is unavailable");
   }
 }
