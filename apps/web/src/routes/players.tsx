@@ -264,8 +264,6 @@ function statusBadge(player: PlayerSummary, t: T) {
   return <Badge variant="success">{t("players.badge.member")}</Badge>;
 }
 
-const shortUuid = (uuid: string) => `${uuid.slice(0, 4)}…${uuid.slice(-4)}`;
-
 function PlayerRow({
   player,
   launchable,
@@ -288,19 +286,14 @@ function PlayerRow({
       <td className={cell}>
         <span className="flex items-center gap-2.5">
           <PlayerAvatar uuid={player.uuid} name={player.name} banned={player.status === "banned"} />
-          <span className="flex min-w-0 flex-col">
-            <button
-              type="button"
-              onClick={onSelect}
-              aria-pressed={selected}
-              className="cursor-pointer truncate border-0 bg-transparent p-0 text-left font-medium text-foreground hover:text-link focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            >
-              {player.name}
-            </button>
-            <span className="font-mono text-[11px] text-muted-foreground">
-              {player.firstSeenAt ? shortUuid(player.uuid) : "—"}
-            </span>
-          </span>
+          <button
+            type="button"
+            onClick={onSelect}
+            aria-pressed={selected}
+            className="min-w-0 cursor-pointer truncate border-0 bg-transparent p-0 text-left font-medium text-foreground hover:text-link focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            {player.name}
+          </button>
         </span>
       </td>
       <td className={`${cell} text-subtle-foreground`}>
