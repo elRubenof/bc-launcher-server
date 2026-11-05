@@ -181,7 +181,7 @@ export const en: Messages = {
   "public.links": "Links",
   "public.open": "Open in BC Launcher",
   "public.openHint": "Nothing happens when you click it? Install the launcher first.",
-  "public.pitch": "Add it to BC Launcher and every series you have access to shows up on its own.",
+  "public.pitch": "Add it to BC Launcher and every server you have access to shows up.",
   "public.download": "Download BC Launcher",
   "public.yourSystem": "Your system",
   "public.latestVersion": "Latest version",

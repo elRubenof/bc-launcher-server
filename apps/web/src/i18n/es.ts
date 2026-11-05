@@ -181,7 +181,7 @@ export const es = {
   "public.open": "Abrir en BC Launcher",
   "public.openHint": "¿No pasa nada al pulsarlo? Instala primero el launcher.",
   "public.pitch":
-    "Añádela a BC Launcher y te aparecerán solas todas las series a las que tengas acceso.",
+    "Añádelo a BC Launcher y te aparecerán todos los servers a los que tengas acceso.",
   "public.download": "Descarga BC Launcher",
   "public.yourSystem": "Tu sistema",
   "public.latestVersion": "Última versión",
