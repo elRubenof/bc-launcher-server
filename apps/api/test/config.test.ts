@@ -3,16 +3,16 @@ import { loadConfig } from "../src/platform/config";
 
 const env = {
   PUBLIC_URL: "https://launcher.example.com/",
-  SESSION_SECRET: "session",
-  JWT_SECRET: "jwt",
+  SESSION_SECRET: "s".repeat(32),
+  JWT_SECRET: "j".repeat(32),
 };
 
 describe("loadConfig", () => {
   it("reads the config and normalizes the public URL", () => {
     expect(loadConfig(env)).toEqual({
       publicUrl: "https://launcher.example.com",
-      sessionSecret: "session",
-      jwtSecret: "jwt",
+      sessionSecret: env.SESSION_SECRET,
+      jwtSecret: env.JWT_SECRET,
     });
   });
 
@@ -35,6 +35,12 @@ describe("loadConfig", () => {
     );
     expect(loadConfig(env, "https://bc.example.workers.dev").publicUrl).toBe(
       "https://launcher.example.com",
+    );
+  });
+
+  it("refuses short secrets", () => {
+    expect(() => loadConfig({ ...env, SESSION_SECRET: "change-me" })).toThrow(
+      "SESSION_SECRET must be at least 32 characters",
     );
   });
 
