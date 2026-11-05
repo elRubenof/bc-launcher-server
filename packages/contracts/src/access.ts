@@ -262,3 +262,27 @@ export const unbanFromInstanceRoute = createRoute({
     404: problemResponse("No such instance (`not_found`), or not banned (`not_listed`)."),
   },
 });
+
+export const InstanceAccess = z.enum(["everyone", "whitelist"]);
+
+export const updateInstanceAccessRoute = createRoute({
+  method: "put",
+  path: "/api/admin/instances/{id}/access",
+  summary: "Choose who can play an instance",
+  description:
+    "`everyone`: every member of the organization. `whitelist`: only the players on the instance's whitelist; for everyone else it is invisible. Bans win in both cases.",
+  tags: ["Admin"],
+  request: {
+    params: instanceParams,
+    body: body(z.object({ access: InstanceAccess }).openapi("UpdateInstanceAccess")),
+  },
+  responses: {
+    200: {
+      description: "Saved.",
+      content: json(z.object({ access: InstanceAccess })),
+    },
+    400: problemResponse("Invalid request."),
+    401: unauthenticated,
+    404: problemResponse("No such instance (`not_found`)."),
+  },
+});

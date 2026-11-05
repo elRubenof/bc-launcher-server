@@ -276,4 +276,25 @@ describe("instance lists", () => {
     expect(res.status).toBe(201);
     expect(((await res.json()) as WhitelistEntry).player.name).toBe("GrieferX");
   });
+
+  it("changes who can play an instance, and logs it", async () => {
+    const { request } = await withInstance();
+    const res = await request("PUT", "/api/admin/instances/serie-t3/access", {
+      access: "whitelist",
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ access: "whitelist" });
+    const instance = (await (await request("GET", "/api/admin/instances/serie-t3")).json()) as {
+      access: string;
+    };
+    expect(instance.access).toBe("whitelist");
+    expect((await activity(request))[0]).toMatchObject({
+      action: "instance.access_changed",
+      target: "serie-t3",
+      details: { from: "everyone", to: "whitelist" },
+    });
+    expect(
+      (await request("PUT", "/api/admin/instances/nope/access", { access: "everyone" })).status,
+    ).toBe(404);
+  });
 });

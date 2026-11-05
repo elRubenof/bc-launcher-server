@@ -843,6 +843,21 @@
           "expiresAt"
         ]
       },
+      "UpdateInstanceAccess": {
+        "type": "object",
+        "properties": {
+          "access": {
+            "type": "string",
+            "enum": [
+              "everyone",
+              "whitelist"
+            ]
+          }
+        },
+        "required": [
+          "access"
+        ]
+      },
       "PlayerPage": {
         "type": "object",
         "properties": {
@@ -3640,6 +3655,90 @@
           },
           "404": {
             "description": "No such instance (`not_found`), or not banned (`not_listed`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/instances/{id}/access": {
+      "put": {
+        "summary": "Choose who can play an instance",
+        "description": "`everyone`: every member of the organization. `whitelist`: only the players on the instance's whitelist; for everyone else it is invisible. Bans win in both cases.",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,39}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInstanceAccess"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access": {
+                      "type": "string",
+                      "enum": [
+                        "everyone",
+                        "whitelist"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "access"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such instance (`not_found`).",
             "content": {
               "application/problem+json": {
                 "schema": {

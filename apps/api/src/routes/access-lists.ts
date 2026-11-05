@@ -13,6 +13,7 @@ import {
   removeFromOrgWhitelistRoute,
   unbanFromInstanceRoute,
   unbanFromOrgRoute,
+  updateInstanceAccessRoute,
   type WhitelistEntry,
 } from "@bc-launcher-server/contracts";
 import { type Database, schema } from "@bc-launcher-server/db";
@@ -313,5 +314,31 @@ export function registerAccessLists(app: OpenAPIHono<AppEnv>) {
   app.openapi(unbanFromInstanceRoute, (c) => {
     const { id, uuid } = c.req.valid("param");
     return unban(c, id, uuid);
+  });
+
+  app.openapi(updateInstanceAccessRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const { access } = c.req.valid("json");
+    const { db } = c.var.platform;
+    const [before] = await db
+      .select({ access: schema.instances.access })
+      .from(schema.instances)
+      .where(eq(schema.instances.id, id));
+    if (!before) return problem(c, 404, "not_found", "No such instance");
+    if (before.access !== access) {
+      await db.batch([
+        db
+          .update(schema.instances)
+          .set({ access, updatedAt: new Date() })
+          .where(eq(schema.instances.id, id)),
+        db.insert(schema.auditLog).values({
+          adminId: c.var.admin.id,
+          action: "instance.access_changed",
+          target: id,
+          details: { from: before.access, to: access },
+        }),
+      ]);
+    }
+    return c.json({ access }, 200);
   });
 }
