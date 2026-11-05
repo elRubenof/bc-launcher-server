@@ -9,6 +9,7 @@ import { registerAdmins } from "./routes/admins";
 import { registerAssets } from "./routes/assets";
 import { registerAuth } from "./routes/auth";
 import { registerDiscovery } from "./routes/discovery";
+import { registerInstances } from "./routes/instances";
 import { registerSettings } from "./routes/settings";
 import { registerSetup } from "./routes/setup";
 
@@ -48,6 +49,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
   registerAssets(app);
   registerAdmins(app);
   registerActivity(app);
+  registerInstances(app);
 
   return app;
 }

@@ -7,11 +7,12 @@ import { type MessageKey, useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/format";
 import { type ActivityFilters, activityPage, adminsQuery } from "@/lib/queries";
 
-const TYPES = ["admin", "org"] as const;
+const TYPES = ["admin", "org", "instance"] as const;
 
 const DOT: Record<string, string> = {
   admin: "bg-warning",
   org: "bg-link",
+  instance: "bg-success",
 };
 
 export function SettingsActivityPage() {
@@ -129,10 +130,16 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
 
 type T = ReturnType<typeof useI18n>["t"];
 
+function fieldList(details: Record<string, unknown>, t: T) {
+  const fields = Array.isArray(details.changed) ? (details.changed as string[]) : [];
+  return fields.map((field) => t(`field.${field}` as MessageKey)).join(", ");
+}
+
 /** Turns an audit log entry into a sentence; unknown actions show their code. */
 function describe(entry: ActivityEntry, t: T): { text: string; detail?: string } {
   const details = (entry.details ?? {}) as Record<string, unknown>;
   const str = (key: string) => (typeof details[key] === "string" ? (details[key] as string) : "");
+  const instance = entry.target ?? "";
 
   switch (entry.action) {
     case "admin.created":
@@ -154,15 +161,24 @@ function describe(entry: ActivityEntry, t: T): { text: string; detail?: string }
     case "admin.removed":
     case "admin.password_reset":
       return { text: t(`action.${entry.action}`, { username: str("username") }) };
-    case "org.settings_changed": {
-      const fields = Array.isArray(details.changed) ? (details.changed as string[]) : [];
+    case "org.settings_changed":
       return {
         text: t("action.org.settings_changed"),
-        detail: t("action.org.settings_changed.detail", {
-          fields: fields.map((field) => t(`field.${field}` as MessageKey)).join(", "),
-        }),
+        detail: t("action.org.settings_changed.detail", { fields: fieldList(details, t) }),
       };
-    }
+    case "instance.updated":
+      return {
+        text: t("action.instance.updated", { instance }),
+        detail: t("action.instance.updated.detail", { fields: fieldList(details, t) }),
+      };
+    case "instance.created":
+    case "instance.colors_changed":
+    case "instance.icon_changed":
+    case "instance.icon_removed":
+    case "instance.background_changed":
+    case "instance.background_reset":
+    case "instance.deleted":
+      return { text: t(`action.${entry.action}`, { instance }) };
     case "org.visibility_changed":
       return {
         text: t("action.org.visibility_changed"),
