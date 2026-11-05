@@ -562,4 +562,27 @@ export const en: Messages = {
   "players.hidden": "Hidden",
   "players.notLaunchable": "Inactive or no content",
   "players.banEllipsis": "Ban…",
+  "org.whitelistJoined": "Add the {count} players who already joined to the whitelist",
+  "org.whitelistJoinedHint":
+    "So nobody is left out by accident. If you untick it, only those already on the whitelist get in.",
+  "org.goingPrivateNote":
+    "When going private you can add the {count} players who already joined to the whitelist, so nobody is left out by accident.",
+  "activity.type.player": "Bans",
+  "activity.type.whitelist": "Whitelists",
+  "action.org.visibility_changed.whitelisted": "{count} players added to the whitelist",
+  "action.instance.access_changed": "changed who can play {instance}",
+  "action.instance.access_changed.everyone": "Now: every member",
+  "action.instance.access_changed.whitelist": "Now: only the whitelist",
+  "action.whitelist.added.org": "added {name} to the organization's whitelist",
+  "action.whitelist.added.instance": "added {name} to the whitelist of {instance}",
+  "action.whitelist.removed.org": "removed {name} from the organization's whitelist",
+  "action.whitelist.removed.instance": "removed {name} from the whitelist of {instance}",
+  "action.player.banned.org": "banned {name} from the organization",
+  "action.player.banned.instance": "banned {name} from {instance}",
+  "action.player.unbanned.org": "lifted {name}'s organization ban",
+  "action.player.unbanned.instance": "lifted {name}'s ban from {instance}",
+  "org.whitelistJoined.one": "Add the player who already joined to the whitelist",
+  "org.goingPrivateNote.one":
+    "When going private you can add the player who already joined to the whitelist, so they aren't left out by accident.",
+  "action.org.visibility_changed.whitelisted.one": "1 player added to the whitelist",
 };

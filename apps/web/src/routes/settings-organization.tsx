@@ -14,7 +14,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/i18n";
 import { ApiError } from "@/lib/api";
-import { api, meQuery, organizationQuery, settingsQuery } from "@/lib/queries";
+import {
+  api,
+  invalidateAccess,
+  meQuery,
+  organizationQuery,
+  playersPage,
+  settingsQuery,
+} from "@/lib/queries";
 
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
@@ -60,7 +67,15 @@ function OrganizationForm({ settings }: { settings: OrganizationSettings }) {
   const readOnly = me.data?.role === "editor";
   const [form, setForm] = useState(() => toForm(settings));
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [whitelistJoined, setWhitelistJoined] = useState(true);
   const descriptionId = useId();
+  const goingPrivate = settings.visibility === "public" && form.visibility === "private";
+  const joined = useQuery({
+    queryKey: ["players", "joined-count"],
+    queryFn: () => playersPage({ status: "joined" }, 0, 1),
+    enabled: settings.visibility === "public" && !readOnly,
+  });
+  const joinedCount = joined.data?.total ?? 0;
 
   useEffect(() => setForm(toForm(settings)), [settings]);
 
@@ -69,7 +84,13 @@ function OrganizationForm({ settings }: { settings: OrganizationSettings }) {
     void queryClient.invalidateQueries({ queryKey: organizationQuery.queryKey });
   };
 
-  const save = useMutation({ mutationFn: api.updateSettings, onSuccess: onSaved });
+  const save = useMutation({
+    mutationFn: api.updateSettings,
+    onSuccess: (next) => {
+      onSaved(next);
+      void invalidateAccess(queryClient);
+    },
+  });
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -96,6 +117,7 @@ function OrganizationForm({ settings }: { settings: OrganizationSettings }) {
       webUrl: orNull(form.webUrl),
       visibility: form.visibility,
       minLauncherVersion: orNull(form.minLauncherVersion),
+      ...(goingPrivate && joinedCount > 0 ? { whitelistJoinedPlayers: whitelistJoined } : {}),
     };
     save.mutate(update);
   }
@@ -156,6 +178,33 @@ function OrganizationForm({ settings }: { settings: OrganizationSettings }) {
               />
             ))}
           </fieldset>
+          {goingPrivate && joinedCount > 0 ? (
+            <label className="flex cursor-pointer gap-2.5 rounded-md border border-warning/40 bg-warning/10 p-3 text-[13px] leading-normal">
+              <input
+                type="checkbox"
+                className="mt-0.5 accent-primary"
+                checked={whitelistJoined}
+                onChange={(event) => setWhitelistJoined(event.target.checked)}
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="font-semibold">
+                  {joinedCount === 1
+                    ? t("org.whitelistJoined.one")
+                    : t("org.whitelistJoined", { count: joinedCount })}
+                </span>
+                <span className="text-muted-foreground">{t("org.whitelistJoinedHint")}</span>
+              </span>
+            </label>
+          ) : settings.visibility === "public" && joinedCount > 0 ? (
+            <p
+              role="note"
+              className="m-0 rounded-md border border-border bg-input-background p-3 text-[13px] leading-normal text-subtle-foreground"
+            >
+              {joinedCount === 1
+                ? t("org.goingPrivateNote.one")
+                : t("org.goingPrivateNote", { count: joinedCount })}
+            </p>
+          ) : null}
         </Card>
 
         <Card className="flex flex-col gap-4 p-[22px]">

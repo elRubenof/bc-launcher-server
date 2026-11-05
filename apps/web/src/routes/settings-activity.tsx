@@ -4,16 +4,18 @@ import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { versionLabel } from "@/components/version-picker";
-import { type MessageKey, useI18n } from "@/i18n";
+import { type Language, type MessageKey, useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/format";
 import { type ActivityFilters, activityPage, adminsQuery } from "@/lib/queries";
 
-const TYPES = ["admin", "org", "instance"] as const;
+const TYPES = ["admin", "org", "instance", "player", "whitelist"] as const;
 
 const DOT: Record<string, string> = {
   admin: "bg-warning",
   org: "bg-link",
   instance: "bg-success",
+  player: "bg-destructive",
+  whitelist: "bg-primary",
 };
 
 export function SettingsActivityPage() {
@@ -105,7 +107,7 @@ export function SettingsActivityPage() {
 
 function ActivityRow({ entry }: { entry: ActivityEntry }) {
   const { t, language } = useI18n();
-  const { text, detail } = describe(entry, t);
+  const { text, detail } = describe(entry, t, language);
   const type = entry.action.split(".")[0] ?? "";
 
   return (
@@ -149,7 +151,11 @@ function fieldList(details: Record<string, unknown>, t: T) {
 }
 
 /** Turns an audit log entry into a sentence; unknown actions show their code. */
-function describe(entry: ActivityEntry, t: T): { text: string; detail?: string } {
+function describe(
+  entry: ActivityEntry,
+  t: T,
+  language: Language,
+): { text: string; detail?: string } {
   const details = (entry.details ?? {}) as Record<string, unknown>;
   const str = (key: string) => (typeof details[key] === "string" ? (details[key] as string) : "");
   const instance = entry.target ?? "";
@@ -211,10 +217,55 @@ function describe(entry: ActivityEntry, t: T): { text: string; detail?: string }
     case "org.visibility_changed":
       return {
         text: t("action.org.visibility_changed"),
-        detail: t("action.org.visibility_changed.detail", {
-          visibility: t(`visibility.${str("to") || "public"}` as MessageKey),
+        detail: [
+          t("action.org.visibility_changed.detail", {
+            visibility: t(`visibility.${str("to") || "public"}` as MessageKey),
+          }),
+          details.whitelisted === 1
+            ? t("action.org.visibility_changed.whitelisted.one")
+            : typeof details.whitelisted === "number"
+              ? t("action.org.visibility_changed.whitelisted", { count: details.whitelisted })
+              : "",
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      };
+    case "instance.access_changed":
+      return {
+        text: t("action.instance.access_changed", { instance }),
+        detail: t(
+          `action.instance.access_changed.${str("to") === "whitelist" ? "whitelist" : "everyone"}`,
+        ),
+      };
+    case "whitelist.added":
+    case "whitelist.removed":
+    case "player.unbanned": {
+      const where = str("instance");
+      return {
+        text: t(`action.${entry.action}.${where ? "instance" : "org"}`, {
+          name: str("name"),
+          instance: where,
         }),
       };
+    }
+    case "player.banned": {
+      const where = str("instance");
+      const expiresAt = str("expiresAt");
+      return {
+        text: t(`action.player.banned.${where ? "instance" : "org"}`, {
+          name: str("name"),
+          instance: where,
+        }),
+        detail: [
+          expiresAt
+            ? t("ban.until", { date: formatDateTime(new Date(expiresAt), language) })
+            : t("ban.permanent"),
+          str("reason") ? t("ban.quotedReason", { reason: str("reason") }) : "",
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      };
+    }
     case "admin.password_changed":
     case "org.logo_changed":
     case "org.logo_removed":

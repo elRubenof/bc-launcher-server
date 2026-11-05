@@ -569,6 +569,29 @@ export const es = {
   "players.hidden": "Oculta",
   "players.notLaunchable": "Inactiva o sin contenido",
   "players.banEllipsis": "Banear…",
+  "org.whitelistJoined": "Añadir a la whitelist a los {count} jugadores que ya han entrado",
+  "org.whitelistJoinedHint":
+    "Así no dejas fuera a nadie sin querer. Si lo desmarcas, solo entrarán los que ya estén en la whitelist.",
+  "org.goingPrivateNote":
+    "Al pasar a privada podrás añadir a la whitelist a los {count} jugadores que ya han entrado, para no dejar fuera a nadie sin querer.",
+  "activity.type.player": "Baneos",
+  "activity.type.whitelist": "Whitelists",
+  "action.org.visibility_changed.whitelisted": "{count} jugadores añadidos a la whitelist",
+  "action.instance.access_changed": "cambió quién puede jugar a {instance}",
+  "action.instance.access_changed.everyone": "Ahora: todos los miembros",
+  "action.instance.access_changed.whitelist": "Ahora: solo la whitelist",
+  "action.whitelist.added.org": "añadió a {name} a la whitelist de la organización",
+  "action.whitelist.added.instance": "añadió a {name} a la whitelist de {instance}",
+  "action.whitelist.removed.org": "quitó a {name} de la whitelist de la organización",
+  "action.whitelist.removed.instance": "quitó a {name} de la whitelist de {instance}",
+  "action.player.banned.org": "baneó a {name} de la organización",
+  "action.player.banned.instance": "baneó a {name} de {instance}",
+  "action.player.unbanned.org": "desbaneó a {name} de la organización",
+  "action.player.unbanned.instance": "desbaneó a {name} de {instance}",
+  "org.whitelistJoined.one": "Añadir a la whitelist al jugador que ya ha entrado",
+  "org.goingPrivateNote.one":
+    "Al pasar a privada podrás añadir a la whitelist al jugador que ya ha entrado, para no dejarlo fuera sin querer.",
+  "action.org.visibility_changed.whitelisted.one": "1 jugador añadido a la whitelist",
 } as const;
 
 export type MessageKey = keyof typeof es;
