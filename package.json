@@ -8,6 +8,8 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "build": "pnpm build:web",
+    "deploy": "wrangler d1 migrations apply DB --remote && wrangler deploy",
     "dev:worker": "pnpm build:web && wrangler d1 migrations apply DB --local && wrangler dev",
     "lint": "biome check .",
     "format": "biome check --write .",
@@ -24,5 +26,21 @@
     "typescript": "7.0.2",
     "vitest": "5.1.0",
     "wrangler": "4.157.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "DB": {
+        "description": "D1 database with the organization's settings, admins, instances, players and news."
+      },
+      "BLOBS": {
+        "description": "R2 bucket with the instance files, logos and images, stored by sha256."
+      },
+      "SESSION_SECRET": {
+        "description": "32+ random characters, e.g. the output of `openssl rand -hex 32`."
+      },
+      "JWT_SECRET": {
+        "description": "32+ random characters, different from `SESSION_SECRET`. Signs player tokens and download links: changing it signs every player out."
+      }
+    }
   }
 }
