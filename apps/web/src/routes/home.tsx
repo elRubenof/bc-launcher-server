@@ -145,7 +145,11 @@ function RecentPlayers() {
               key={player.uuid}
               className="flex items-center gap-3 border-t border-[#2a1d33] py-2"
             >
-              <PlayerAvatar name={player.name} banned={player.status === "banned"} />
+              <PlayerAvatar
+                uuid={player.uuid}
+                name={player.name}
+                banned={player.status === "banned"}
+              />
               <span className="min-w-0 flex-1 truncate font-medium">{player.name}</span>
               <span className="text-[13px] text-muted-foreground">
                 {player.lastSeenAt ? formatRelative(new Date(player.lastSeenAt), language) : ""}

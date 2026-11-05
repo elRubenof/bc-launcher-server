@@ -32,25 +32,50 @@ import { cn } from "@/lib/utils";
 const PLAYER_REF =
   /^([A-Za-z0-9_]{1,16}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
 
-/** The player's initial in a square, as in the mockups. */
+/** The player's Minecraft head (crafthead.net, the avatar playerdb.co links to). */
+export function playerHeadUrl(uuid: string) {
+  return `https://crafthead.net/avatar/${uuid.replaceAll("-", "")}/64`;
+}
+
+/**
+ * The player's head, or their initial in a square while it loads or if it can't be fetched.
+ * Banned players get a dimmed head with a red ring.
+ */
 export function PlayerAvatar({
+  uuid,
   name,
   banned = false,
   className,
 }: {
+  uuid?: string | undefined;
   name: string;
   banned?: boolean;
   className?: string;
 }) {
+  // Per uuid, so a sheet that switches players tries each head.
+  const [failedUuid, setFailedUuid] = useState<string>();
+  const box = cn(
+    "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-bold",
+    banned ? "bg-[#3a1f26] text-destructive-foreground" : "bg-border",
+    className,
+  );
+  if (uuid && failedUuid !== uuid) {
+    return (
+      <img
+        src={playerHeadUrl(uuid)}
+        alt=""
+        loading="lazy"
+        onError={() => setFailedUuid(uuid)}
+        className={cn(
+          box,
+          "object-cover [image-rendering:pixelated]",
+          banned && "opacity-60 ring-2 ring-destructive grayscale",
+        )}
+      />
+    );
+  }
   return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-bold",
-        banned ? "bg-[#3a1f26] text-destructive-foreground" : "bg-border",
-        className,
-      )}
-    >
+    <span aria-hidden="true" className={box}>
       {name[0]?.toUpperCase()}
     </span>
   );
@@ -159,7 +184,7 @@ export function WhitelistCard({
               key={entry.player.uuid}
               className="flex items-center gap-3 border-t border-[#2a1d33] py-2"
             >
-              <PlayerAvatar name={entry.player.name} />
+              <PlayerAvatar uuid={entry.player.uuid} name={entry.player.name} />
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate font-medium">{entry.player.name}</span>
                 <span className="text-xs text-muted-foreground">{meta(entry)}</span>
@@ -244,7 +269,7 @@ export function BlacklistCard({ scope, title }: { scope: AccessScope; title?: st
               key={entry.player.uuid}
               className="flex items-start gap-3 border-t border-[#2a1d33] py-2.5"
             >
-              <PlayerAvatar name={entry.player.name} banned />
+              <PlayerAvatar uuid={entry.player.uuid} name={entry.player.name} banned />
               <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
                 <span className="truncate font-medium">{entry.player.name}</span>
                 {entry.reason ? (

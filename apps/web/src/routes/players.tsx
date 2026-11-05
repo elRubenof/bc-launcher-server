@@ -287,7 +287,7 @@ function PlayerRow({
     >
       <td className={cell}>
         <span className="flex items-center gap-2.5">
-          <PlayerAvatar name={player.name} banned={player.status === "banned"} />
+          <PlayerAvatar uuid={player.uuid} name={player.name} banned={player.status === "banned"} />
           <span className="flex min-w-0 flex-col">
             <button
               type="button"
@@ -331,6 +331,7 @@ function PlayerSheet({ uuid, onClose }: { uuid: string; onClose: () => void }) {
     >
       <div className="flex items-center gap-3">
         <PlayerAvatar
+          uuid={data?.uuid}
           name={data?.name ?? "?"}
           banned={data?.organization.status === "banned"}
           className="size-12 rounded-lg text-lg"
