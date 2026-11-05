@@ -113,7 +113,15 @@ tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 
 ## Server design
 
-Implemented except where noted: Mojang player certificates for Workers (see "Player auth") and anything announced in discovery's `capabilities`, which is empty for now.
+Implemented except where noted: Mojang player certificates for Workers (see "Player auth") are not done.
+
+- **Capabilities:** discovery's `capabilities` lists the optional features this server has, so the launcher knows before making any request (no `serverVersion` checks, no probing for `404`). Empty for now: everything in the first release is the baseline of `/api/v1` and is never announced. Rules:
+  - Announce a capability only for a feature added to an already released API version that the launcher must detect, e.g. a new endpoint (`server-status`), a new manifest field (`optional-mods`) or a request option (`manifest-delta`). Also for features an admin can turn off: announce it only while it is on.
+  - It is a property of the whole server, never of one instance. Per-instance data (whether an instance has a map or news) goes in the instance's own fields.
+  - Booleans only: a mode with several values gets its own discovery field, like `auth.type`.
+  - kebab-case names; a name's meaning never changes and is never reused.
+  - A new API version takes the previous version's capabilities into its baseline and stops announcing them.
+  - Document each capability here and in its contract when adding it.
 
 - **Accounts and roles:** username + password (no email, usernames stored lowercase). Three roles:
   - `owner`: exactly one (unique partial index), the account created at `/admin/setup`. Everything, and can act on any other account.
