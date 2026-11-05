@@ -35,7 +35,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
   });
 
   app.use(async (c, next) => {
-    c.set("platform", resolvePlatform(c.env, c.req.url));
+    c.set("platform", await resolvePlatform(c.env, c.req.url));
     await next();
   });
 

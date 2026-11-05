@@ -36,6 +36,13 @@
       "when": 1793866788114,
       "tag": "0004_news",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793869949067,
+      "tag": "0005_server_secrets",
+      "breakpoints": true
     }
   ]
 }

@@ -33,7 +33,7 @@ export interface Platform {
  * Builds the platform from the runtime's bindings (`c.env` on Workers, unused on Node) and the
  * request URL (the Worker's public URL when `PUBLIC_URL` isn't set).
  */
-export type PlatformResolver = (env: unknown, requestUrl: string) => Platform;
+export type PlatformResolver = (env: unknown, requestUrl: string) => Platform | Promise<Platform>;
 
 export type AppEnv = {
   Variables: {

@@ -85,7 +85,7 @@ jobs:
       - name: Smoke test
         run: |
           docker run -d --name server -p 3000:3000 \
-            -e PUBLIC_URL=http://localhost:3000 -e JWT_SECRET=$(openssl rand -hex 32) \
+            -e PUBLIC_URL=http://localhost:3000 \
             bc-launcher-server:ci
           for i in $(seq 1 30); do
             if curl -sf http://localhost:3000/health; then break; fi

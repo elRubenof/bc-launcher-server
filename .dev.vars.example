@@ -1,4 +1,5 @@
-# Secret of the Worker. Locally: copy to .dev.vars (never commit it) and replace the value.
-# "Deploy to Cloudflare" asks for it too. It needs 32+ random characters (`openssl rand -hex 32`);
-# the server refuses to start with this placeholder.
-JWT_SECRET=change-me
+# Optional local settings for `pnpm dev:worker`: copy to .dev.vars (never commit it) and uncomment.
+# Without them the Worker uses the request's address and generates its JWT secret in local D1.
+# Deploy to Cloudflare reads this file for the secrets to ask for, so keep the lines commented.
+# PUBLIC_URL=http://localhost:8787
+# JWT_SECRET=<32+ random characters, e.g. `openssl rand -hex 32`>

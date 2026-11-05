@@ -3,14 +3,14 @@ import { join, resolve } from "node:path";
 import { serve } from "@hono/node-server";
 import { createApp } from "../app";
 import { runCleanup } from "../cleanup";
-import { loadConfig } from "../platform/config";
+import { loadConfig, resolveConfig } from "../platform/config";
 import { FsBlobStore } from "../platform/node/fs-blob-store";
 import { createLibsqlDatabase } from "../platform/node/libsql-database";
 import { migrateLibsqlDatabase, SOURCE_MIGRATIONS_DIR } from "../platform/node/migrate";
 import { SOURCE_WEB_DIR, serveWeb } from "../platform/node/web";
 import type { Platform } from "../platform/types";
 
-const config = loadConfig(process.env);
+const envConfig = loadConfig(process.env);
 const dataDir = resolve(process.env.DATA_DIR ?? "/data");
 const port = Number(process.env.PORT ?? 3000);
 
@@ -18,6 +18,7 @@ mkdirSync(join(dataDir, "blobs"), { recursive: true });
 
 const db = createLibsqlDatabase(`file:${join(dataDir, "db.sqlite")}`);
 await migrateLibsqlDatabase(db, resolve(process.env.MIGRATIONS_DIR ?? SOURCE_MIGRATIONS_DIR));
+const config = await resolveConfig(envConfig, db);
 
 const platform: Platform = {
   db,

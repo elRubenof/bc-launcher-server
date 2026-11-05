@@ -34,6 +34,16 @@ export const settings = sqliteTable(
   (table) => [check("settings_single_row", sql`${table.id} = 1`)],
 );
 
+/**
+ * Secrets the server generates for itself on first use (`name` = what it's for, e.g. `jwt`), so a
+ * deployment needs no secret configuration. Never sent to clients.
+ */
+export const serverSecrets = sqliteTable("server_secrets", {
+  name: text("name").primaryKey(),
+  value: text("value").notNull(),
+  createdAt: timestamp("created_at").notNull().default(now),
+});
+
 export const admins = sqliteTable(
   "admins",
   {

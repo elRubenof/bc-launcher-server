@@ -34,9 +34,6 @@
       },
       "BLOBS": {
         "description": "R2 bucket with the instance files, logos and images, stored by sha256."
-      },
-      "JWT_SECRET": {
-        "description": "32+ random characters, e.g. the output of `openssl rand -hex 32`. Signs player tokens and download links: changing it signs every player out."
       }
     }
   }

@@ -26,7 +26,7 @@
       "bucket_name": "bc-launcher-server-blobs"
     }
   ]
-  // JWT_SECRET is a secret: `wrangler secret put` in production, `.dev.vars`
-  // locally. PUBLIC_URL is optional here: without it, the public URL is the origin each request
+  // JWT_SECRET is optional: without it the server generates one and keeps it in D1; set it with
+  // `wrangler secret put` (or `.dev.vars` locally) to manage it yourself. PUBLIC_URL is optional too: without it, the public URL is the origin each request
   // came in on (workers.dev or a custom domain); set it as a var to force one.
 }

@@ -1,6 +1,6 @@
 # Example deployment with the published image. Put it behind a reverse proxy with TLS and set
-# PUBLIC_URL to its public origin. Settings go in docker/.env (never committed): PUBLIC_URL
-# and JWT_SECRET (32+ random characters, e.g. `openssl rand -hex 32`).
+# PUBLIC_URL to its public origin (e.g. in docker/.env, never committed). JWT_SECRET is optional:
+# without it the server generates one and keeps it in the data volume.
 # `docker compose up -d` pulls the image; `docker compose up --build` builds it from this checkout.
 services:
   server:
@@ -13,7 +13,7 @@ services:
       - "3000:3000"
     environment:
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in docker/.env}
+      JWT_SECRET: ${JWT_SECRET:-}
     volumes:
       - data:/data
 
