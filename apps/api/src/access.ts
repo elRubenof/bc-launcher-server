@@ -1,13 +1,16 @@
 import { type Database, schema } from "@bc-launcher-server/db";
-import { and, eq, exists, gt, isNull, not, or, type SQL, sql } from "drizzle-orm";
+import { and, type Column, eq, exists, gt, isNull, not, or, type SQL, sql } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
+
+/** A player uuid or instance id: a value, or a column of the outer query. */
+type Ref = Column | SQL | string;
 
 /** A ban counts while it has no expiry or its expiry is still ahead. */
 export const activeBan = (expiresAt: SQLiteColumn, now: Date) =>
   or(isNull(expiresAt), gt(expiresAt, now)) as SQL;
 
 /** Whether the player is banned from the organization (an active `org_blacklist` entry). */
-export const orgBanned = (db: Database, playerUuid: SQL | string, now: Date) =>
+export const orgBanned = (db: Database, playerUuid: Ref, now: Date) =>
   exists(
     db
       .select({ one: sql`1` })
@@ -21,7 +24,7 @@ export const orgBanned = (db: Database, playerUuid: SQL | string, now: Date) =>
   );
 
 /** Whether the player is on the organization's whitelist. */
-export const orgWhitelisted = (db: Database, playerUuid: SQL | string) =>
+export const orgWhitelisted = (db: Database, playerUuid: Ref) =>
   exists(
     db
       .select({ one: sql`1` })
@@ -35,7 +38,7 @@ export const orgWhitelisted = (db: Database, playerUuid: SQL | string) =>
  */
 export const memberCondition = (
   db: Database,
-  playerUuid: SQL | string,
+  playerUuid: Ref,
   now: Date,
   visibility: SQL | "public" | "private",
 ) =>
@@ -58,41 +61,57 @@ export async function isMember(db: Database, playerUuid: string, now = new Date(
   return Boolean(row);
 }
 
+/** Whether the player is on the instance's whitelist. */
+export const instanceWhitelisted = (db: Database, playerUuid: Ref, instanceId: Ref) =>
+  exists(
+    db
+      .select({ one: sql`1` })
+      .from(schema.instanceWhitelist)
+      .where(
+        and(
+          eq(schema.instanceWhitelist.instanceId, instanceId),
+          eq(schema.instanceWhitelist.playerUuid, playerUuid),
+        ),
+      ),
+  );
+
+/** Whether the player is banned from the instance (an active `instance_blacklist` entry). */
+export const instanceBanned = (db: Database, playerUuid: Ref, instanceId: Ref, now: Date) =>
+  exists(
+    db
+      .select({ one: sql`1` })
+      .from(schema.instanceBlacklist)
+      .where(
+        and(
+          eq(schema.instanceBlacklist.instanceId, instanceId),
+          eq(schema.instanceBlacklist.playerUuid, playerUuid),
+          activeBan(schema.instanceBlacklist.expiresAt, now),
+        ),
+      ),
+  );
+
 /**
- * Whether the player can play the instance in the current row of `instances`: it is active and
- * has content, the player isn't banned from it, and it is open to every member or the player is
- * on its whitelist. Membership of the organization is checked separately (`requirePlayer`).
+ * Instance access for a member, for the current row of `instances`: not banned from it, and it is
+ * open to every member or the player is on its whitelist.
  */
-export const playableBy = (db: Database, playerUuid: string, now: Date) =>
+export const instanceAccess = (db: Database, playerUuid: Ref, now: Date) =>
   and(
-    eq(schema.instances.isActive, true),
-    gt(schema.instances.contentVersion, 0),
     or(
       eq(schema.instances.access, "everyone"),
-      exists(
-        db
-          .select({ one: sql`1` })
-          .from(schema.instanceWhitelist)
-          .where(
-            and(
-              eq(schema.instanceWhitelist.instanceId, schema.instances.id),
-              eq(schema.instanceWhitelist.playerUuid, playerUuid),
-            ),
-          ),
-      ),
+      instanceWhitelisted(db, playerUuid, schema.instances.id),
     ),
-    not(
-      exists(
-        db
-          .select({ one: sql`1` })
-          .from(schema.instanceBlacklist)
-          .where(
-            and(
-              eq(schema.instanceBlacklist.instanceId, schema.instances.id),
-              eq(schema.instanceBlacklist.playerUuid, playerUuid),
-              activeBan(schema.instanceBlacklist.expiresAt, now),
-            ),
-          ),
-      ),
-    ),
+    not(instanceBanned(db, playerUuid, schema.instances.id, now)),
   ) as SQL;
+
+/** Instances the launcher shows at all: active and with content. */
+export const launchable = and(
+  eq(schema.instances.isActive, true),
+  gt(schema.instances.contentVersion, 0),
+) as SQL;
+
+/**
+ * Whether the player can play the instance in the current row of `instances`: launchable and with
+ * access. Membership of the organization is checked separately (`requirePlayer`).
+ */
+export const playableBy = (db: Database, playerUuid: Ref, now: Date) =>
+  and(launchable, instanceAccess(db, playerUuid, now)) as SQL;

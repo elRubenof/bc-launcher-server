@@ -840,6 +840,234 @@
           "expiresAt"
         ]
       },
+      "PlayerPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlayerSummary"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "launchableInstances": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "launchableInstances"
+        ]
+      },
+      "PlayerSummary": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "firstSeenAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "member",
+              "not_member",
+              "banned"
+            ]
+          },
+          "playableInstances": {
+            "type": "integer"
+          },
+          "instanceBans": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "uuid",
+          "name",
+          "firstSeenAt",
+          "lastSeenAt",
+          "status",
+          "playableInstances",
+          "instanceBans"
+        ]
+      },
+      "PlayerDetail": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "firstSeenAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "organization": {
+            "type": "object",
+            "properties": {
+              "visibility": {
+                "type": "string",
+                "enum": [
+                  "public",
+                  "private"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "member",
+                  "not_member",
+                  "banned"
+                ]
+              },
+              "whitelisted": {
+                "type": "boolean"
+              },
+              "ban": {
+                "$ref": "#/components/schemas/Ban"
+              }
+            },
+            "required": [
+              "visibility",
+              "status",
+              "whitelisted",
+              "ban"
+            ]
+          },
+          "instances": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "access": {
+                  "type": "string",
+                  "enum": [
+                    "everyone",
+                    "whitelist"
+                  ]
+                },
+                "launchable": {
+                  "type": "boolean"
+                },
+                "whitelisted": {
+                  "type": "boolean"
+                },
+                "ban": {
+                  "$ref": "#/components/schemas/Ban"
+                },
+                "visible": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "access",
+                "launchable",
+                "whitelisted",
+                "ban",
+                "visible"
+              ]
+            }
+          }
+        },
+        "required": [
+          "uuid",
+          "name",
+          "firstSeenAt",
+          "lastSeenAt",
+          "organization",
+          "instances"
+        ]
+      },
+      "Ban": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "addedBy": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "username"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "reason",
+          "expiresAt",
+          "addedBy",
+          "createdAt"
+        ]
+      },
       "Instance": {
         "type": "object",
         "properties": {
@@ -3409,6 +3637,158 @@
           },
           "404": {
             "description": "No such instance (`not_found`), or not banned (`not_listed`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/players": {
+      "get": {
+        "summary": "Players, most recently seen first",
+        "description": "Everyone who signed in with the launcher, plus players added to a list by name who never joined.",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 50
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "member",
+                "banned",
+                "not_member",
+                "never_joined"
+              ],
+              "default": "all"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 40
+            },
+            "required": false,
+            "name": "instance",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "default": 0
+            },
+            "required": false,
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of players.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/players/{uuid}": {
+      "get": {
+        "summary": "A player and their access to the organization and each instance",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "required": true,
+            "name": "uuid",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player (`not_found`).",
             "content": {
               "application/problem+json": {
                 "schema": {
