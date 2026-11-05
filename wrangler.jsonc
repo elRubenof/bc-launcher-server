@@ -4,6 +4,10 @@
   "main": "apps/api/src/entry/worker.ts",
   "compatibility_date": "2026-11-01",
   "observability": { "enabled": true },
+  // Always serve on <name>.<subdomain>.workers.dev (the address to open after Deploy to Cloudflare),
+  // whatever the dashboard shows. Preview URLs would expose every uploaded version publicly: off.
+  "workers_dev": true,
+  "preview_urls": false,
   // The panel and public page (apps/web, built with `pnpm build:web`). Unknown paths get
   // index.html for the client-side router; API paths always reach the Worker.
   "assets": {
@@ -27,6 +31,7 @@
     }
   ]
   // JWT_SECRET is optional: without it the server generates one and keeps it in D1; set it with
-  // `wrangler secret put` (or `.dev.vars` locally) to manage it yourself. PUBLIC_URL is optional too: without it, the public URL is the origin each request
-  // came in on (workers.dev or a custom domain); set it as a var to force one.
+  // `wrangler secret put` (or `.dev.vars` locally) to manage it yourself. PUBLIC_URL is optional
+  // too: without it, the public URL is the origin each request came in on (workers.dev or a
+  // custom domain); set it as a var to force one.
 }

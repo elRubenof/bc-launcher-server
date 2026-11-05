@@ -19,8 +19,8 @@ One deployment is one organization. Pick one of the two targets.
 You need a Cloudflare account with R2 enabled (Cloudflare may ask for a payment method to enable R2, even within its free tier).
 
 1. Click the button and sign in. Cloudflare copies this repository to your GitHub or GitLab account and creates the Worker, a D1 database (`DB`) and an R2 bucket (`BLOBS`). You can keep the suggested names.
-2. Check the build settings: the build command is `pnpm run build` and the deploy command runs the `deploy` script (`pnpm run deploy` or `npm run deploy`), not `npx wrangler deploy`. The deploy script applies the database migrations and deploys the Worker.
-3. Deploy, then [open the panel right away](#after-deploying-open-the-panel-right-away) at `https://<worker>.<your-subdomain>.workers.dev/admin`.
+2. Keep the build settings it fills in: build command `pnpm run build`, deploy command `pnpm run deploy` (it applies the database migrations, then deploys the Worker). No secrets are needed.
+3. Deploy. When the build finishes (a couple of minutes), [open the panel right away](#after-deploying-open-the-panel-right-away) at `https://<worker>.<your-subdomain>.workers.dev/admin`; the build log prints that address at the end. The `workers.dev` address is always enabled by the deployment (`workers_dev` in `wrangler.jsonc`), even if the Worker's Domains tab shows it switched off.
 
 The server uses the address each request comes in on as its public URL, so it works on `workers.dev` and on a custom domain (Worker → Settings → Domains & Routes) without changes. To always use one address, add a `PUBLIC_URL` variable (e.g. `https://launcher.example.com`) in the Worker's settings.
 
