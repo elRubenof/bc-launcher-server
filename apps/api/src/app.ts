@@ -5,6 +5,7 @@ import { sameOrigin } from "./middleware/origin";
 import { requirePlayer } from "./middleware/player";
 import type { AppEnv, PlatformResolver } from "./platform/types";
 import { problem } from "./problem";
+import { registerAccessLists } from "./routes/access-lists";
 import { registerActivity } from "./routes/activity";
 import { registerAdmins } from "./routes/admins";
 import { registerAssets } from "./routes/assets";
@@ -70,8 +71,9 @@ export function createApp(resolvePlatform: PlatformResolver) {
   registerAssets(app);
   registerAdmins(app);
   registerActivity(app);
-  // Before the instance routes: `PUT /instances/{id}/{kind}` would also match `/content`.
+  // Before the instance routes: `/instances/{id}/{kind}` would also match `/content`, `/whitelist`...
   registerContent(app);
+  registerAccessLists(app);
   registerInstances(app);
   registerBlobs(app);
   registerLoaders(app);

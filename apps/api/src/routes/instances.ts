@@ -232,6 +232,8 @@ export function registerInstances(app: OpenAPIHono<AppEnv>) {
     await db.batch([
       db.delete(schema.instanceFiles).where(eq(schema.instanceFiles.instanceId, id)),
       db.delete(schema.instanceManagedDirs).where(eq(schema.instanceManagedDirs.instanceId, id)),
+      db.delete(schema.instanceWhitelist).where(eq(schema.instanceWhitelist.instanceId, id)),
+      db.delete(schema.instanceBlacklist).where(eq(schema.instanceBlacklist.instanceId, id)),
       db.delete(schema.instances).where(eq(schema.instances.id, id)),
       db.insert(schema.auditLog).values({
         adminId: c.var.admin.id,

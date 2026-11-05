@@ -1,5 +1,5 @@
-import { schema } from "@bc-launcher-server/db";
-import { and, eq, isNotNull, isNull, lt, notInArray, sql } from "drizzle-orm";
+import { type Database, schema } from "@bc-launcher-server/db";
+import { and, eq, isNotNull, isNull, lt, lte, notInArray, sql } from "drizzle-orm";
 import type { Platform } from "./platform/types";
 
 export const ORPHAN_GRACE_MS = 24 * 3600 * 1000;
@@ -58,4 +58,29 @@ export async function cleanupOrphanBlobs(platform: Platform, now = Date.now()) {
     deleted++;
   }
   return { deleted, more: expired.length === MAX_DELETES };
+}
+
+/** Deletes bans whose expiry has passed (they already stopped counting). Runs with the blob cleanup. */
+export async function cleanupExpiredBans(db: Database, now = new Date()) {
+  await db.batch([
+    db
+      .delete(schema.orgBlacklist)
+      .where(
+        and(isNotNull(schema.orgBlacklist.expiresAt), lte(schema.orgBlacklist.expiresAt, now)),
+      ),
+    db
+      .delete(schema.instanceBlacklist)
+      .where(
+        and(
+          isNotNull(schema.instanceBlacklist.expiresAt),
+          lte(schema.instanceBlacklist.expiresAt, now),
+        ),
+      ),
+  ]);
+}
+
+/** The hourly maintenance: orphan blobs and expired bans. */
+export async function runCleanup(platform: Platform, now = Date.now()) {
+  await cleanupExpiredBans(platform.db, new Date(now));
+  return cleanupOrphanBlobs(platform, now);
 }
