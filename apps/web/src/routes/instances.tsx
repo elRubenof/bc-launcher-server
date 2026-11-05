@@ -1,8 +1,8 @@
 import type { Instance } from "@bc-launcher-server/contracts";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { SearchIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { InstanceIcon } from "@/components/instance-icon";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +10,10 @@ import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { versionLabel } from "@/components/version-picker";
 import { useI18n } from "@/i18n";
+import { clickableRow } from "@/lib/clickable-row";
 import { formatDate, formatRelative } from "@/lib/format";
 import { instancesQuery } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 import { NewInstanceDialog } from "./new-instance-dialog";
 
 type Status = "active" | "inactive" | "empty";
@@ -99,7 +101,7 @@ export function InstancesPage() {
           </thead>
           <tbody>
             {rows.map((instance) => (
-              <tr key={instance.id} className="hover:bg-accent/40">
+              <InstanceRow key={instance.id} instance={instance}>
                 <td className="border-b border-[#2a1d33] px-4 py-3.5">
                   <Link
                     to="/admin/instances/$id"
@@ -134,7 +136,7 @@ export function InstancesPage() {
                 <td className="border-b border-[#2a1d33] px-4 py-3.5 text-muted-foreground">
                   {formatDate(new Date(instance.createdAt), language)}
                 </td>
-              </tr>
+              </InstanceRow>
             ))}
           </tbody>
         </table>
@@ -146,5 +148,22 @@ export function InstancesPage() {
       </Card>
       <p className="m-0 text-[13px] text-muted-foreground">{t("instances.hint")}</p>
     </div>
+  );
+}
+
+/** A table row that opens the instance from anywhere on it (cmd/ctrl-click: in a new tab). */
+function InstanceRow({ instance, children }: { instance: Instance; children: ReactNode }) {
+  const navigate = useNavigate();
+  const row = clickableRow((event) => {
+    if (event.metaKey || event.ctrlKey) {
+      window.open(`/admin/instances/${encodeURIComponent(instance.id)}`, "_blank", "noopener");
+    } else {
+      void navigate({ to: "/admin/instances/$id", params: { id: instance.id } });
+    }
+  });
+  return (
+    <tr className={cn(row.className, "hover:bg-accent/40")} onClick={row.onClick}>
+      {children}
+    </tr>
   );
 }

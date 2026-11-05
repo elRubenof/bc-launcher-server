@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useI18n } from "@/i18n";
+import { clickableRow } from "@/lib/clickable-row";
 import { formatDate, formatRelative } from "@/lib/format";
 import {
   type AccessScope,
@@ -278,8 +279,12 @@ function PlayerRow({
 }) {
   const { t, language } = useI18n();
   const cell = "border-b border-[#2a1d33] px-4 py-3";
+  const row = clickableRow(onSelect);
   return (
-    <tr className={cn(selected && "bg-secondary")}>
+    <tr
+      className={cn(row.className, selected ? "bg-secondary" : "hover:bg-accent/40")}
+      onClick={row.onClick}
+    >
       <td className={cell}>
         <span className="flex items-center gap-2.5">
           <PlayerAvatar name={player.name} banned={player.status === "banned"} />
