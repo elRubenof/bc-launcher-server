@@ -51,7 +51,7 @@ export const es = {
   "home.title": "Inicio",
   "home.subtitle": "Resumen de {name}",
   "home.instances": "Instancias",
-  "home.noInstances": "Aún no hay instancias.",
+  "home.noInstances": "Aún no hay instancias. Créalas en Instancias.",
   "common.discard": "Descartar",
   "common.saveChanges": "Guardar cambios",
   "common.saved": "Cambios guardados.",
@@ -441,6 +441,8 @@ export const es = {
   "content.leave.leave": "Salir y descartar",
   "content.leave.stay": "Seguir editando",
   "content.editor": "Editor de contenido",
+  "home.allInstances": "Ver todas",
+  "home.contentLine": "Contenido v{version} · {when} · {files} archivos",
 } as const;
 
 export type MessageKey = keyof typeof es;

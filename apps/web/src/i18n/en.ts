@@ -52,7 +52,7 @@ export const en: Messages = {
   "home.title": "Home",
   "home.subtitle": "Overview of {name}",
   "home.instances": "Instances",
-  "home.noInstances": "There are no instances yet.",
+  "home.noInstances": "There are no instances yet. Create them in Instances.",
   "common.discard": "Discard",
   "common.saveChanges": "Save changes",
   "common.saved": "Changes saved.",
@@ -435,4 +435,6 @@ export const en: Messages = {
   "content.leave.leave": "Leave and discard",
   "content.leave.stay": "Keep editing",
   "content.editor": "Content editor",
+  "home.allInstances": "See all",
+  "home.contentLine": "Content v{version} · {when} · {files} files",
 };
