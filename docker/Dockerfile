@@ -8,7 +8,8 @@ COPY . .
 RUN pnpm install --frozen-lockfile --filter "@bc-launcher-server/api..." --filter "@bc-launcher-server/web..."
 RUN pnpm --filter @bc-launcher-server/api build:node
 RUN pnpm --filter @bc-launcher-server/web build
-RUN pnpm --filter @bc-launcher-server/api deploy --prod --legacy /out
+# The root `deploy` script (Cloudflare) shadows pnpm's own `deploy` command, so drop it here first.
+RUN npm pkg delete scripts.deploy && pnpm --filter @bc-launcher-server/api deploy --prod --legacy /out
 
 FROM node:22-slim
 ENV NODE_ENV=production \

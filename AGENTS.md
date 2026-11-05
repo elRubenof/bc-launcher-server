@@ -33,7 +33,7 @@ pnpm dev:worker       # build the panel, apply local D1 migrations, wrangler dev
 pnpm dev:web          # panel with hot reload on :5173, proxying the API to :8787 (API_URL to change it)
 pnpm build:web        # build the panel to apps/web/dist (served by both runtimes)
 pnpm run build        # = build:web; the build command of Deploy to Cloudflare / Workers Builds
-pnpm run deploy       # apply D1 migrations remotely and wrangler deploy (`pnpm deploy` is a different pnpm command)
+pnpm run deploy       # apply D1 migrations remotely and wrangler deploy
 pnpm --filter @bc-launcher-server/api dev:node    # Node server on :3000 (env in apps/api/.env, see .env.example)
 pnpm --filter @bc-launcher-server/api build:node  # bundle the Node server to apps/api/dist/node.js
 docker compose -f docker/docker-compose.yml up --build   # Docker image (secrets in docker/.env)
@@ -109,7 +109,7 @@ tsconfig.base.json, biome.json, vitest.config.ts, pnpm-workspace.yaml
 - **Admin API** (`/api/admin/*`): every route needs a session except setup and login (`requireAdmin`), and every mutating request must come from the deployment's own origin (`sameOrigin`). The Vite dev proxy rewrites `Origin` so this also works on :5173. Handlers that editors can't use start with `managersOnly(c)`; handlers that act on another account go through `findTarget()` in `routes/admins.ts`, which refuses your own account and the owner's. Every change an admin makes is recorded in `audit_log` with a stable `action` code, and the panel turns each code into a sentence (`routes/settings-activity.tsx`); add both when adding an action.
 - **Panel UI:** all user-facing text goes through `useI18n().t()`, with the key added to **both** `src/i18n/es.ts` and `en.ts`. Follow the panel mockups (dark theme, colors in `src/index.css`). Accessible markup: real buttons, links and labelled inputs.
 - **Secrets:** never commit real secrets, tokens or signing keys. Never log passwords, session tokens or JWTs.
-- **Deploy to Cloudflare** reads the root `package.json`: the `build` and `deploy` scripts (prefilled as build and deploy commands), the `cloudflare.bindings` descriptions shown in the flow, and `.dev.vars.example` for the secrets it asks for. The repo root must stay a deployable Worker (no `database_id` in `wrangler.jsonc`, resources provisioned by the flow). Keep `README.md` → "Deploy" in step with any change to secrets, variables or deployment.
+- **Deploy to Cloudflare** reads the root `package.json`: the `build` and `deploy` scripts (prefilled as build and deploy commands), the `cloudflare.bindings` descriptions shown in the flow, and `.dev.vars.example` for the secrets it asks for. The root `deploy` script shadows pnpm's own `pnpm deploy` command, so the Dockerfile deletes it before using that command. The repo root must stay a deployable Worker (no `database_id` in `wrangler.jsonc`, resources provisioned by the flow). Keep `README.md` → "Deploy" in step with any change to secrets, variables or deployment.
 
 ## Server design (agreed, not all implemented yet)
 

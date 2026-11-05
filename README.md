@@ -24,7 +24,7 @@ You need a Cloudflare account with R2 enabled (Cloudflare may ask for a payment 
    - `JWT_SECRET`: signs player tokens and download links; changing it later signs every player out.
 
    The server refuses to start with the `change-me` placeholders or anything shorter.
-3. Check the build settings: the build command is `pnpm run build` and the deploy command runs the `deploy` script (`pnpm run deploy` or `npm run deploy`, **not** `pnpm deploy`, which is a different pnpm command). The deploy script applies the database migrations and deploys the Worker.
+3. Check the build settings: the build command is `pnpm run build` and the deploy command runs the `deploy` script (`pnpm run deploy` or `npm run deploy`), not `npx wrangler deploy`. The deploy script applies the database migrations and deploys the Worker.
 4. Deploy, then [open the panel right away](#after-deploying-open-the-panel-right-away) at `https://<worker>.<your-subdomain>.workers.dev/admin`.
 
 The server uses the address each request comes in on as its public URL, so it works on `workers.dev` and on a custom domain (Worker → Settings → Domains & Routes) without changes. To always use one address, add a `PUBLIC_URL` variable (e.g. `https://launcher.example.com`) in the Worker's settings.
