@@ -1,4 +1,5 @@
-import { assertSha256 } from "./sha256";
+import { sha256Hex } from "../auth/crypto";
+import { assertSha256, BlobMismatchError } from "./sha256";
 import type { BlobStore } from "./types";
 
 /** In-memory `BlobStore` for tests. */
@@ -22,7 +23,10 @@ export class MemoryBlobStore implements BlobStore {
     assertSha256(sha256);
     const data = new Uint8Array(await new Response(body).arrayBuffer());
     if (data.byteLength !== size) {
-      throw new Error(`Blob ${sha256} has ${data.byteLength} bytes, expected ${size}`);
+      throw new BlobMismatchError(`Blob ${sha256} has ${data.byteLength} bytes, expected ${size}`);
+    }
+    if ((await sha256Hex(data)) !== sha256) {
+      throw new BlobMismatchError(`Blob ${sha256} doesn't match its hash`);
     }
     this.#blobs.set(sha256, data);
   }

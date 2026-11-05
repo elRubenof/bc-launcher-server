@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { BlobMismatchError } from "../src/platform/sha256";
 import type { BlobStore } from "../src/platform/types";
 
 const toStream = (text: string) => new Blob([text]).stream();
-const SHA = "a".repeat(64);
+/** sha256("hello"). */
+const SHA = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
 
 /** Behavior every `BlobStore` adapter must satisfy. */
 export function describeBlobStore(name: string, create: () => BlobStore | Promise<BlobStore>) {
@@ -35,8 +37,19 @@ export function describeBlobStore(name: string, create: () => BlobStore | Promis
     it("rejects a body whose size doesn't match", async () => {
       const store = await create();
 
-      await expect(store.put(SHA, toStream("hello"), 4)).rejects.toThrow();
+      await expect(store.put(SHA, toStream("hello"), 4)).rejects.toThrow(BlobMismatchError);
       expect(await store.head(SHA)).toBeNull();
+    });
+
+    it("rejects a body that doesn't hash to its key, keeping what was there", async () => {
+      const store = await create();
+
+      await expect(store.put(SHA, toStream("HELLO"), 5)).rejects.toThrow(BlobMismatchError);
+      expect(await store.head(SHA)).toBeNull();
+
+      await store.put(SHA, toStream("hello"), 5);
+      await expect(store.put(SHA, toStream("HELLO"), 5)).rejects.toThrow(BlobMismatchError);
+      expect(await new Response((await store.get(SHA))?.body).text()).toBe("hello");
     });
 
     it("deletes a blob, and deleting a missing one is a no-op", async () => {

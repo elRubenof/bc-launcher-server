@@ -8,6 +8,7 @@ import { registerActivity } from "./routes/activity";
 import { registerAdmins } from "./routes/admins";
 import { registerAssets } from "./routes/assets";
 import { registerAuth } from "./routes/auth";
+import { registerBlobs } from "./routes/blobs";
 import { registerDiscovery } from "./routes/discovery";
 import { registerInstances } from "./routes/instances";
 import { registerSettings } from "./routes/settings";
@@ -50,6 +51,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
   registerAdmins(app);
   registerActivity(app);
   registerInstances(app);
+  registerBlobs(app);
 
   return app;
 }

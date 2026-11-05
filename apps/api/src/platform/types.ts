@@ -6,7 +6,11 @@ export interface BlobStore {
   /** Returns the blob's size, or `null` if it doesn't exist. */
   head(sha256: string): Promise<{ size: number } | null>;
   get(sha256: string): Promise<{ body: ReadableStream<Uint8Array>; size: number } | null>;
-  /** Stores a blob. `size` must be the exact byte length of `body` (R2 needs it for streams). */
+  /**
+   * Stores a blob. `size` must be the exact byte length of `body` (R2 needs it for streams), and the
+   * bytes must hash to `sha256`: otherwise it throws `BlobMismatchError` and stores nothing, so a
+   * key always holds the bytes it names.
+   */
   put(sha256: string, body: ReadableStream<Uint8Array>, size: number): Promise<void>;
   delete(sha256: string): Promise<void>;
 }

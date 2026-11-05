@@ -8,3 +8,11 @@ export function isSha256(value: string): boolean {
 export function assertSha256(value: string): void {
   if (!isSha256(value)) throw new Error(`Invalid sha256: ${JSON.stringify(value)}`);
 }
+
+/** A blob's bytes don't match its key (sha256) or its declared size. Nothing was stored. */
+export class BlobMismatchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BlobMismatchError";
+  }
+}

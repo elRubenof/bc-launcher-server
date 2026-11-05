@@ -825,6 +825,53 @@
         "required": [
           "colors"
         ]
+      },
+      "CheckBlobsResult": {
+        "type": "object",
+        "properties": {
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "required": [
+          "missing"
+        ]
+      },
+      "CheckBlobs": {
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "maxItems": 10000
+          }
+        },
+        "required": [
+          "sha256"
+        ]
+      },
+      "UploadedBlob": {
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sha256",
+          "size"
+        ]
       }
     },
     "parameters": {}
@@ -2290,6 +2337,140 @@
           },
           "404": {
             "description": "No such instance (`not_found`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blobs/check": {
+      "post": {
+        "summary": "Which of these files the server doesn't have yet",
+        "description": "Files the server already has get another 24 h before the orphan cleanup can delete them, so they can be applied without uploading them again.",
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckBlobs"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The missing hashes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckBlobsResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/blobs/{sha256}": {
+      "put": {
+        "summary": "Upload a file, addressed by its sha256",
+        "description": "The raw bytes, up to 100 MB, with a `Content-Length`. The server hashes them while storing and refuses them if they don't match. A file the server already has is not read again. Uploaded files are invisible until content that uses them is applied.",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "required": true,
+            "name": "sha256",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stored (or already there).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadedBlob"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The bytes don't match the sha256 or the `Content-Length` (`hash_mismatch`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (`unauthenticated`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "411": {
+            "description": "The request has no `Content-Length` (`length_required`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The file is too large (`blob_too_large`).",
             "content": {
               "application/problem+json": {
                 "schema": {
