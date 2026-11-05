@@ -39,9 +39,9 @@ export function registerAssets(app: OpenAPIHono<AppEnv>) {
     }
     await db.batch([
       db
-        .insert(schema.assets)
+        .insert(schema.blobs)
         .values({ sha256, contentType, size: bytes.byteLength })
-        .onConflictDoNothing(),
+        .onConflictDoUpdate({ target: schema.blobs.sha256, set: { contentType } }),
       db
         .update(schema.settings)
         .set({ [column[kind]]: sha256, updatedAt: new Date() })
@@ -75,9 +75,10 @@ export function registerAssets(app: OpenAPIHono<AppEnv>) {
   app.openapi(getAssetRoute, async (c) => {
     const { sha256 } = c.req.valid("param");
     const { db, blobs } = c.var.platform;
-    const [asset] = await db.select().from(schema.assets).where(eq(schema.assets.sha256, sha256));
-    const blob = asset ? await blobs.get(sha256) : null;
-    if (!asset || !blob) return problem(c, 404, "not_found", "No such asset");
+    const [asset] = await db.select().from(schema.blobs).where(eq(schema.blobs.sha256, sha256));
+    // Only images are public; content files are served through signed URLs.
+    const blob = asset?.contentType ? await blobs.get(sha256) : null;
+    if (!asset?.contentType || !blob) return problem(c, 404, "not_found", "No such asset");
 
     return c.body(blob.body, 200, {
       "Content-Type": asset.contentType,

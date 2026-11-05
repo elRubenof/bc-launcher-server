@@ -15,6 +15,13 @@
       "when": 1793829365156,
       "tag": "0001_admins_and_assets",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793837110031,
+      "tag": "0002_instances_and_blobs",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,13 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+  check,
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
 const now = sql`(cast(unixepoch('subsec') * 1000 as integer))`;
@@ -11,9 +19,9 @@ export const settings = sqliteTable(
     id: integer("id").primaryKey(),
     name: text("name").notNull(),
     description: text("description"),
-    /** sha256 of the logo in `assets`. */
+    /** sha256 of the logo in `blobs`. */
     logoBlob: text("logo_blob"),
-    /** sha256 of the icon in `assets`. */
+    /** sha256 of the icon in `blobs`. */
     iconBlob: text("icon_blob"),
     discordUrl: text("discord_url"),
     webUrl: text("web_url"),
@@ -56,13 +64,106 @@ export const setupLock = sqliteTable(
   (table) => [check("setup_lock_single_row", sql`${table.id} = 1`)],
 );
 
-/** Public images (organization logo and icon), stored in the BlobStore by their sha256. */
-export const assets = sqliteTable("assets", {
+/**
+ * Every file in the BlobStore, keyed by its sha256 (content-addressed: stored once, never
+ * overwritten). Instance files, the organization's logo and icon, and instance icons and
+ * backgrounds all point here.
+ */
+export const blobs = sqliteTable("blobs", {
   sha256: text("sha256").primaryKey(),
-  contentType: text("content_type").notNull(),
   size: integer("size").notNull(),
+  /** The image type for blobs served as public images (`/api/v1/assets`); null for content files. */
+  contentType: text("content_type"),
   createdAt: timestamp("created_at").notNull().default(now),
+  /**
+   * When the cleanup first found the blob unreferenced; null while something references it. A blob
+   * that stays unreferenced for 24 h is deleted.
+   */
+  orphanedAt: timestamp("orphaned_at"),
 });
+
+export type InstanceColors = {
+  primary: string;
+  primaryDark: string;
+  background: string;
+  text: string;
+};
+
+/** A series, event or server: what players see and play in the launcher. */
+export const instances = sqliteTable(
+  "instances",
+  {
+    /** Readable and immutable (`serie-t3`): used in URLs and as the launcher's local folder. */
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description"),
+    iconBlob: text("icon_blob").references(() => blobs.sha256),
+    /** Never empty: new instances get BC Launcher's default background. */
+    backgroundBlob: text("background_blob")
+      .notNull()
+      .references(() => blobs.sha256),
+    colors: text("colors", { mode: "json" }).$type<InstanceColors>().notNull(),
+    mapUrl: text("map_url"),
+    /** Own links; when null the API falls back to the organization's. */
+    discordUrl: text("discord_url"),
+    webUrl: text("web_url"),
+    mcVersion: text("mc_version").notNull(),
+    loader: text("loader", { enum: ["vanilla", "fabric", "quilt", "forge", "neoforge"] }).notNull(),
+    /** Null for vanilla. */
+    loaderVersion: text("loader_version"),
+    /** `host` or `host:port`, for auto-connect. */
+    serverAddress: text("server_address"),
+    recommendedRamMb: integer("recommended_ram_mb"),
+    access: text("access", { enum: ["everyone", "whitelist"] })
+      .notNull()
+      .default("everyone"),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    /** +1 on every applied content change; 0 = no content yet (hidden in the launcher). */
+    contentVersion: integer("content_version").notNull().default(0),
+    contentUpdatedAt: timestamp("content_updated_at"),
+    contentUpdatedBy: text("content_updated_by").references(() => admins.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").notNull().default(now),
+    updatedAt: timestamp("updated_at").notNull().default(now),
+  },
+  (table) => [index("instances_created_at").on(table.createdAt)],
+);
+
+/** The files of an instance's current content. */
+export const instanceFiles = sqliteTable(
+  "instance_files",
+  {
+    instanceId: text("instance_id")
+      .notNull()
+      .references(() => instances.id, { onDelete: "cascade" }),
+    /** Relative posix path inside the instance folder (`mods/sodium.jar`). */
+    path: text("path").notNull(),
+    blobSha256: text("blob_sha256")
+      .notNull()
+      .references(() => blobs.sha256),
+    /** `always`: the server's copy wins on every launch. `once`: copied only if missing. */
+    policy: text("policy", { enum: ["always", "once"] })
+      .notNull()
+      .default("always"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.instanceId, table.path] }),
+    index("instance_files_blob").on(table.blobSha256),
+  ],
+);
+
+/** Folders where the launcher deletes anything that isn't in the manifest (`mods`). */
+export const instanceManagedDirs = sqliteTable(
+  "instance_managed_dirs",
+  {
+    instanceId: text("instance_id")
+      .notNull()
+      .references(() => instances.id, { onDelete: "cascade" }),
+    path: text("path").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.instanceId, table.path] })],
+);
 
 export const adminSessions = sqliteTable(
   "admin_sessions",
