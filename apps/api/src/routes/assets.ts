@@ -13,14 +13,11 @@ import type { AppEnv } from "../platform/types";
 import { problem } from "../problem";
 import { readSettings, toOrganizationSettings } from "../settings";
 
-const column = { logo: "logoBlob", icon: "iconBlob" } as const;
-
 export function registerAssets(app: OpenAPIHono<AppEnv>) {
   app.openapi(uploadOrganizationImageRoute, async (c) => {
     const forbidden = managersOnly(c);
     if (forbidden) return forbidden;
 
-    const { kind } = c.req.valid("param");
     const image = await storeUploadedImage(c, MAX_IMAGE_BYTES);
     if (image instanceof Response) return image;
 
@@ -29,11 +26,11 @@ export function registerAssets(app: OpenAPIHono<AppEnv>) {
       upsertImageBlob(db, image),
       db
         .update(schema.settings)
-        .set({ [column[kind]]: image.sha256, updatedAt: new Date() })
+        .set({ logoBlob: image.sha256, updatedAt: new Date() })
         .where(eq(schema.settings.id, 1)),
       db.insert(schema.auditLog).values({
         adminId: c.var.admin.id,
-        action: `org.${kind}_changed`,
+        action: "org.logo_changed",
         details: { sha256: image.sha256 },
       }),
     ]);
@@ -45,14 +42,13 @@ export function registerAssets(app: OpenAPIHono<AppEnv>) {
     const forbidden = managersOnly(c);
     if (forbidden) return forbidden;
 
-    const { kind } = c.req.valid("param");
     const { db, config } = c.var.platform;
     await db.batch([
       db
         .update(schema.settings)
-        .set({ [column[kind]]: null, updatedAt: new Date() })
+        .set({ logoBlob: null, updatedAt: new Date() })
         .where(eq(schema.settings.id, 1)),
-      db.insert(schema.auditLog).values({ adminId: c.var.admin.id, action: `org.${kind}_removed` }),
+      db.insert(schema.auditLog).values({ adminId: c.var.admin.id, action: "org.logo_removed" }),
     ]);
     return c.json(toOrganizationSettings(await readSettings(db), config), 200);
   });

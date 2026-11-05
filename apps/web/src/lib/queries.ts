@@ -189,10 +189,9 @@ export const api = {
     apiRequest<void>("PUT", "/api/admin/auth/password", body),
   updateSettings: (body: UpdateOrganizationSettings) =>
     apiRequest<OrganizationSettings>("PUT", "/api/admin/settings", body),
-  uploadImage: (kind: "logo" | "icon", file: File) =>
-    apiRequest<OrganizationSettings>("PUT", `/api/admin/settings/${kind}`, file),
-  removeImage: (kind: "logo" | "icon") =>
-    apiRequest<OrganizationSettings>("DELETE", `/api/admin/settings/${kind}`),
+  uploadLogo: (file: File) =>
+    apiRequest<OrganizationSettings>("PUT", "/api/admin/settings/logo", file),
+  removeLogo: () => apiRequest<OrganizationSettings>("DELETE", "/api/admin/settings/logo"),
   createAdmin: (body: { username: string; password: string; role: "admin" | "editor" }) =>
     apiRequest<AdminListItem>("POST", "/api/admin/admins", body),
   resetAdminPassword: (id: string, password: string) =>

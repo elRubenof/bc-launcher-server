@@ -11,7 +11,6 @@ export const OrganizationSettings = z
     name: z.string(),
     description: z.string().nullable(),
     logoUrl: z.url().nullable(),
-    iconUrl: z.url().nullable(),
     discordUrl: z.string().nullable(),
     webUrl: z.string().nullable(),
     visibility: z.enum(["public", "private"]),

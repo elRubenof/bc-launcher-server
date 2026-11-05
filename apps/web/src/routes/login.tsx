@@ -42,7 +42,7 @@ export function LoginPage({ redirectTo }: { redirectTo?: string | undefined }) {
         <Card className="p-6 sm:p-8">
           <form onSubmit={submit} className="flex flex-col gap-[18px]">
             <div className="flex items-center gap-3">
-              <BrandMark name={organization.data?.name} />
+              <BrandMark name={organization.data?.name} logoUrl={organization.data?.logoUrl} />
               <div className="flex min-w-0 flex-col">
                 <span className="truncate font-semibold">
                   {organization.data?.name ?? t("common.brand")}

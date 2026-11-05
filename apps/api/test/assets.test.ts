@@ -13,23 +13,22 @@ async function setup() {
 
 type App = Awaited<ReturnType<typeof setup>>["app"];
 
-const upload = (app: App, cookie: string, kind: string, body: Uint8Array, type = "image/png") =>
-  app.request(`/api/admin/settings/${kind}`, {
+const upload = (app: App, cookie: string, body: Uint8Array, type = "image/png") =>
+  app.request("/api/admin/settings/logo", {
     method: "PUT",
     headers: { Cookie: cookie, Origin: "http://localhost", "Content-Type": type },
     body,
   });
 
-describe("organization images", () => {
+describe("organization logo", () => {
   it("uploads a logo and serves it as an immutable asset", async () => {
     const { app, owner } = await setup();
 
-    const res = await upload(app, owner, "logo", PNG);
+    const res = await upload(app, owner, PNG);
 
     expect(res.status).toBe(200);
-    const { logoUrl, iconUrl } = (await res.json()) as { logoUrl: string; iconUrl: null };
+    const { logoUrl } = (await res.json()) as { logoUrl: string };
     expect(logoUrl).toMatch(/^http:\/\/localhost:8787\/api\/v1\/assets\/[0-9a-f]{64}$/);
-    expect(iconUrl).toBeNull();
 
     const asset = await app.request(new URL(logoUrl).pathname);
     expect(asset.status).toBe(200);
@@ -46,7 +45,7 @@ describe("organization images", () => {
   it("detects the type from the bytes, not the header", async () => {
     const { app, owner } = await setup();
 
-    const res = await upload(app, owner, "icon", new TextEncoder().encode("<svg></svg>"));
+    const res = await upload(app, owner, new TextEncoder().encode("<svg></svg>"));
 
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ code: "invalid_image" });
@@ -57,30 +56,30 @@ describe("organization images", () => {
     const big = new Uint8Array(2 * 1024 * 1024 + 1);
     big.set(PNG);
 
-    const res = await upload(app, owner, "logo", big);
+    const res = await upload(app, owner, big);
 
     expect(res.status).toBe(413);
     expect(await res.json()).toMatchObject({ code: "image_too_large" });
   });
 
-  it("doesn't let editors change the images", async () => {
+  it("doesn't let editors change the logo", async () => {
     const { app, platform } = await setup();
     const editor = await signInAs(app, platform, "editor", "editor");
 
-    expect((await upload(app, editor, "logo", PNG)).status).toBe(403);
+    expect((await upload(app, editor, PNG)).status).toBe(403);
   });
 
-  it("removes an image", async () => {
+  it("removes the logo", async () => {
     const { app, owner } = await setup();
-    await upload(app, owner, "icon", PNG);
+    await upload(app, owner, PNG);
 
-    const res = await app.request("/api/admin/settings/icon", {
+    const res = await app.request("/api/admin/settings/logo", {
       method: "DELETE",
       headers: { Cookie: owner, Origin: "http://localhost" },
     });
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ iconUrl: null });
+    expect(await res.json()).toMatchObject({ logoUrl: null });
   });
 
   it("answers 404 for unknown assets", async () => {

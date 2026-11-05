@@ -80,7 +80,7 @@ export const en: Messages = {
   "org.imageInvalid": "Use a PNG, JPEG, WebP or GIF image.",
   "org.imageTooLarge": "The image can't be larger than 2 MB.",
   "org.identityHint":
-    "Shown in the launcher's organization picker and when adding it. The organization has no colors or background: each instance has its own.",
+    "The logo is used in the launcher (organization picker and when adding it), on the public page, in the panel and as the site icon. Square works best. The organization has no colors or background: each instance has its own.",
   "org.visibility": "Visibility",
   "org.visibility.public": "Public",
   "org.visibility.publicHint": "Any player with the link can add it.",

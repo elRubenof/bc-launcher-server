@@ -46,13 +46,6 @@
             ],
             "format": "uri"
           },
-          "iconUrl": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uri"
-          },
           "links": {
             "type": "object",
             "properties": {
@@ -119,7 +112,6 @@
           "name",
           "description",
           "logoUrl",
-          "iconUrl",
           "links",
           "serverVersion",
           "apiVersions",
@@ -270,13 +262,6 @@
             ],
             "format": "uri"
           },
-          "iconUrl": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uri"
-          },
           "discordUrl": {
             "type": [
               "string",
@@ -311,7 +296,6 @@
           "name",
           "description",
           "logoUrl",
-          "iconUrl",
           "discordUrl",
           "webUrl",
           "visibility",
@@ -1780,13 +1764,6 @@
             ],
             "format": "uri"
           },
-          "iconUrl": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uri"
-          },
           "links": {
             "type": "object",
             "properties": {
@@ -1815,7 +1792,6 @@
           "name",
           "description",
           "logoUrl",
-          "iconUrl",
           "links"
         ]
       },
@@ -2427,26 +2403,12 @@
         }
       }
     },
-    "/api/admin/settings/{kind}": {
+    "/api/admin/settings/logo": {
       "put": {
-        "summary": "Upload the organization's logo or icon (owner and admins)",
+        "summary": "Upload the organization's logo (owner and admins)",
         "description": "PNG, JPEG, WebP or GIF, up to 2 MB, as the raw body.",
         "tags": [
           "Admin"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "logo",
-                "icon"
-              ]
-            },
-            "required": true,
-            "name": "kind",
-            "in": "path"
-          }
         ],
         "requestBody": {
           "required": true,
@@ -2531,23 +2493,9 @@
         }
       },
       "delete": {
-        "summary": "Remove the organization's logo or icon (owner and admins)",
+        "summary": "Remove the organization's logo (owner and admins)",
         "tags": [
           "Admin"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "logo",
-                "icon"
-              ]
-            },
-            "required": true,
-            "name": "kind",
-            "in": "path"
-          }
         ],
         "responses": {
           "200": {
@@ -2585,7 +2533,7 @@
     },
     "/api/v1/assets/{sha256}": {
       "get": {
-        "summary": "A public image (logo, icon), addressed by its sha256",
+        "summary": "A public image (logo, instance icon or background, news image), addressed by its sha256",
         "tags": [
           "Launcher"
         ],

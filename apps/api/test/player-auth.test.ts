@@ -128,7 +128,6 @@ describe("player auth", () => {
       name: "BC Launcher Server",
       description: null,
       logoUrl: null,
-      iconUrl: null,
       links: { discord: null, web: null },
     });
   });

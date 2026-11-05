@@ -47,7 +47,11 @@ function Sidebar() {
       className="flex flex-col gap-6 border-b border-border bg-sidebar px-3.5 py-5 md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:border-r md:border-b-0"
     >
       <div className="flex items-center gap-2.5 px-1.5 py-1">
-        <BrandMark name={organization.data?.name} className="size-9 rounded-md text-sm" />
+        <BrandMark
+          name={organization.data?.name}
+          logoUrl={organization.data?.logoUrl}
+          className="size-9 rounded-md text-sm"
+        />
         <div className="flex min-w-0 flex-col">
           <span className="truncate font-semibold">{organization.data?.name ?? "…"}</span>
           {organization.data ? (

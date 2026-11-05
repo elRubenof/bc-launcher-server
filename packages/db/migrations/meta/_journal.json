@@ -43,6 +43,13 @@
       "when": 1793869949067,
       "tag": "0005_server_secrets",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793875143360,
+      "tag": "0006_drop_organization_icon",
+      "breakpoints": true
     }
   ]
 }

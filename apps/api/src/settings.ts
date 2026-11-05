@@ -21,7 +21,6 @@ export function toOrganizationSettings(row: SettingsRow, config: Config): Organi
     name: row.name,
     description: row.description,
     logoUrl: assetUrl(config, row.logoBlob),
-    iconUrl: assetUrl(config, row.iconBlob),
     discordUrl: row.discordUrl,
     webUrl: row.webUrl,
     visibility: row.visibility,

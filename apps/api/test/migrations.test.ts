@@ -1,5 +1,9 @@
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { schema } from "@bc-launcher-server/db";
+import { type Client, createClient } from "@libsql/client";
 import { describe, expect, it } from "vitest";
+import { SOURCE_MIGRATIONS_DIR } from "../src/platform/node/migrate";
 import { createTestPlatform } from "./helpers";
 
 describe("migrations", () => {
@@ -16,5 +20,43 @@ describe("migrations", () => {
     const { db } = await createTestPlatform();
 
     await expect(db.insert(schema.settings).values({ id: 2, name: "Other" })).rejects.toThrow();
+  });
+});
+
+describe("0006_drop_organization_icon", () => {
+  /** Runs the migration files whose names start with `prefixes`, statement by statement. */
+  async function runMigrations(client: Client, prefixes: string[]) {
+    const files = (await readdir(SOURCE_MIGRATIONS_DIR))
+      .filter((file) => file.endsWith(".sql") && prefixes.some((p) => file.startsWith(p)))
+      .sort();
+    for (const file of files) {
+      const sqlText = await readFile(join(SOURCE_MIGRATIONS_DIR, file), "utf8");
+      for (const statement of sqlText.split("--> statement-breakpoint")) {
+        if (statement.trim()) await client.execute(statement);
+      }
+    }
+  }
+
+  it("keeps an icon as the logo when there was no logo", async () => {
+    const client = createClient({ url: ":memory:" });
+    await runMigrations(client, ["0000", "0001", "0002", "0003", "0004", "0005"]);
+    await client.execute("UPDATE settings SET icon_blob = 'icon-sha' WHERE id = 1");
+
+    await runMigrations(client, ["0006"]);
+
+    const { rows } = await client.execute("SELECT * FROM settings");
+    expect(rows[0]?.logo_blob).toBe("icon-sha");
+    expect(rows[0]).not.toHaveProperty("icon_blob");
+  });
+
+  it("keeps an existing logo over the icon", async () => {
+    const client = createClient({ url: ":memory:" });
+    await runMigrations(client, ["0000", "0001", "0002", "0003", "0004", "0005"]);
+    await client.execute("UPDATE settings SET logo_blob = 'logo-sha', icon_blob = 'icon-sha'");
+
+    await runMigrations(client, ["0006"]);
+
+    const { rows } = await client.execute("SELECT logo_blob FROM settings");
+    expect(rows[0]?.logo_blob).toBe("logo-sha");
   });
 });

@@ -55,14 +55,11 @@ export function PublicPage() {
           aria-labelledby="org-name"
           className="flex flex-col items-center gap-[18px] text-center"
         >
-          {org?.logoUrl ? (
-            <img src={org.logoUrl} alt="" className="size-24 rounded-[22px] object-cover" />
-          ) : (
-            <BrandMark
-              name={org?.name}
-              className="size-24 rounded-[22px] text-[34px] font-extrabold"
-            />
-          )}
+          <BrandMark
+            name={org?.name}
+            logoUrl={org?.logoUrl}
+            className="size-24 rounded-[22px] text-[34px] font-extrabold"
+          />
           <h1
             id="org-name"
             className="m-0 text-[clamp(32px,5vw,48px)] font-extrabold tracking-tight"

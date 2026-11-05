@@ -14,7 +14,6 @@ async function discoveryDocument(db: Database, config: Config): Promise<Discover
     name: settings.name,
     description: settings.description,
     logoUrl: assetUrl(config, settings.logoBlob),
-    iconUrl: assetUrl(config, settings.iconBlob),
     links: { discord: settings.discordUrl, web: settings.webUrl },
     serverVersion: SERVER_VERSION,
     apiVersions: API_VERSIONS,

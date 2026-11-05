@@ -59,7 +59,6 @@ export function registerPlayerAuth(app: OpenAPIHono<AppEnv>) {
         name: settings.name,
         description: settings.description,
         logoUrl: assetUrl(config, settings.logoBlob),
-        iconUrl: assetUrl(config, settings.iconBlob),
         links: { discord: settings.discordUrl, web: settings.webUrl },
       },
       200,

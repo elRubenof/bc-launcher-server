@@ -21,8 +21,6 @@ export const settings = sqliteTable(
     description: text("description"),
     /** sha256 of the logo in `blobs`. */
     logoBlob: text("logo_blob"),
-    /** sha256 of the icon in `blobs`. */
-    iconBlob: text("icon_blob"),
     discordUrl: text("discord_url"),
     webUrl: text("web_url"),
     visibility: text("visibility", { enum: ["public", "private"] })

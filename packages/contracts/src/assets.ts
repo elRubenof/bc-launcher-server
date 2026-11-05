@@ -2,25 +2,20 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { problemResponse } from "./problem";
 import { OrganizationSettings } from "./settings";
 
-/** Image types accepted for the organization's logo and icon. SVG is not accepted. */
+/** Image types accepted for the organization's logo and news images. SVG is not accepted. */
 export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const;
 export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 const Binary = z.string().openapi({ type: "string", format: "binary" });
 const imageContent = Object.fromEntries(IMAGE_TYPES.map((type) => [type, { schema: Binary }]));
 
-const OrganizationImageParams = z.object({
-  kind: z.enum(["logo", "icon"]).openapi({ param: { name: "kind", in: "path" } }),
-});
-
 export const uploadOrganizationImageRoute = createRoute({
   method: "put",
-  path: "/api/admin/settings/{kind}",
-  summary: "Upload the organization's logo or icon (owner and admins)",
+  path: "/api/admin/settings/logo",
+  summary: "Upload the organization's logo (owner and admins)",
   description: `PNG, JPEG, WebP or GIF, up to ${MAX_IMAGE_BYTES / 1024 / 1024} MB, as the raw body.`,
   tags: ["Admin"],
   request: {
-    params: OrganizationImageParams,
     body: { required: true, content: imageContent },
   },
   responses: {
@@ -37,10 +32,9 @@ export const uploadOrganizationImageRoute = createRoute({
 
 export const deleteOrganizationImageRoute = createRoute({
   method: "delete",
-  path: "/api/admin/settings/{kind}",
-  summary: "Remove the organization's logo or icon (owner and admins)",
+  path: "/api/admin/settings/logo",
+  summary: "Remove the organization's logo (owner and admins)",
   tags: ["Admin"],
-  request: { params: OrganizationImageParams },
   responses: {
     200: {
       description: "The organization's settings without the image.",
@@ -54,7 +48,8 @@ export const deleteOrganizationImageRoute = createRoute({
 export const getAssetRoute = createRoute({
   method: "get",
   path: "/api/v1/assets/{sha256}",
-  summary: "A public image (logo, icon), addressed by its sha256",
+  summary:
+    "A public image (logo, instance icon or background, news image), addressed by its sha256",
   tags: ["Launcher"],
   request: {
     params: z.object({

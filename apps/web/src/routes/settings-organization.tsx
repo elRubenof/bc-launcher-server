@@ -146,20 +146,7 @@ function OrganizationForm({ settings }: { settings: OrganizationSettings }) {
               onChange={(event) => set("description", event.target.value)}
             />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <ImagePicker
-              kind="logo"
-              url={settings.logoUrl}
-              name={settings.name}
-              onChange={onSaved}
-            />
-            <ImagePicker
-              kind="icon"
-              url={settings.iconUrl}
-              name={settings.name}
-              onChange={onSaved}
-            />
-          </div>
+          <LogoPicker url={settings.logoUrl} name={settings.name} onChange={onSaved} />
           <p className="m-0 mt-auto text-xs text-muted-foreground">{t("org.identityHint")}</p>
         </Card>
 
@@ -288,13 +275,11 @@ function OrganizationForm({ settings }: { settings: OrganizationSettings }) {
   );
 }
 
-function ImagePicker({
-  kind,
+function LogoPicker({
   url,
   name,
   onChange,
 }: {
-  kind: "logo" | "icon";
   url: string | null;
   name: string;
   onChange: (settings: OrganizationSettings) => void;
@@ -303,7 +288,7 @@ function ImagePicker({
   const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string>();
   const upload = useMutation({
-    mutationFn: (file: File) => api.uploadImage(kind, file),
+    mutationFn: (file: File) => api.uploadLogo(file),
     onSuccess: onChange,
     onError: (err) =>
       setError(
@@ -314,17 +299,12 @@ function ImagePicker({
             : t("common.unexpectedError"),
       ),
   });
-  const remove = useMutation({ mutationFn: () => api.removeImage(kind), onSuccess: onChange });
-  const size = kind === "logo" ? "size-14 rounded-xl" : "size-10 rounded-[10px] text-xs";
-  const label = t(kind === "logo" ? "org.logo" : "org.icon");
+  const remove = useMutation({ mutationFn: () => api.removeLogo(), onSuccess: onChange });
+  const label = t("org.logo");
 
   return (
     <div className="flex items-center gap-3">
-      {url ? (
-        <img src={url} alt={label} className={`${size} shrink-0 object-cover`} />
-      ) : (
-        <BrandMark name={name} className={size} />
-      )}
+      <BrandMark name={name} logoUrl={url} className="size-14 rounded-xl" />
       <div className="flex min-w-0 flex-col gap-1">
         <span className="font-medium">{label}</span>
         <div className="flex gap-1.5">

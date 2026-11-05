@@ -11,7 +11,6 @@ export const DiscoveryDocument = z
     name: z.string(),
     description: z.string().nullable(),
     logoUrl: z.url().nullable(),
-    iconUrl: z.url().nullable(),
     links: z.object({
       discord: z.url().nullable(),
       web: z.url().nullable(),

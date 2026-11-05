@@ -10,14 +10,14 @@ const blob = schema.blobs.sha256;
 
 /**
  * Nothing points to the blob: no instance file, instance icon or background, news image, or
- * organization logo or icon. One `NOT EXISTS` per table (D1 allows at most 5 terms in a compound
+ * organization logo. One `NOT EXISTS` per table (D1 allows at most 5 terms in a compound
  * `SELECT`, so a `UNION` of every source doesn't fit).
  */
 const unreferenced = sql`(
   not exists (select 1 from ${schema.instanceFiles} where ${schema.instanceFiles.blobSha256} = ${blob})
   and not exists (select 1 from ${schema.instances} where ${schema.instances.backgroundBlob} = ${blob} or ${schema.instances.iconBlob} = ${blob})
   and not exists (select 1 from ${schema.news} where ${schema.news.imageBlob} = ${blob})
-  and not exists (select 1 from ${schema.settings} where ${schema.settings.logoBlob} = ${blob} or ${schema.settings.iconBlob} = ${blob})
+  and not exists (select 1 from ${schema.settings} where ${schema.settings.logoBlob} = ${blob})
 )`;
 
 /**

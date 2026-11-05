@@ -79,7 +79,7 @@ export const es = {
   "org.imageInvalid": "Usa una imagen PNG, JPEG, WebP o GIF.",
   "org.imageTooLarge": "La imagen no puede pasar de 2 MB.",
   "org.identityHint":
-    "Se muestran en el selector de organizaciones del launcher y al añadirla. La organización no tiene colores ni fondo: cada instancia tiene los suyos.",
+    "El logo se usa en el launcher (selector de organizaciones y al añadirla), en la página pública, en el panel y como icono de la web. Mejor cuadrado. La organización no tiene colores ni fondo: cada instancia tiene los suyos.",
   "org.visibility": "Visibilidad",
   "org.visibility.public": "Pública",
   "org.visibility.publicHint": "Cualquier jugador con el enlace puede añadirla.",

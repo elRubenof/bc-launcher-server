@@ -6,6 +6,7 @@ import {
   Outlet,
   redirect,
 } from "@tanstack/react-router";
+import { OrganizationFavicon } from "./components/organization-favicon";
 import { ApiError } from "./lib/api";
 import { meQuery, setupStatusQuery } from "./lib/queries";
 import { HomePage } from "./routes/home";
@@ -50,7 +51,12 @@ async function setupRequired(queryClient: QueryClient) {
 }
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: Outlet,
+  component: () => (
+    <>
+      <OrganizationFavicon />
+      <Outlet />
+    </>
+  ),
 });
 
 /** The organization's public download page. */
