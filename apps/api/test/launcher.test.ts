@@ -2,7 +2,7 @@ import type { LauncherInstance, Manifest } from "@bc-launcher-server/contracts";
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "../src/auth/crypto";
 import { checkBlobSignature, signedBlobUrl, URL_WINDOW_SECONDS } from "../src/signed-urls";
-import { createTestApp, createTestPlatform, jsonRequest, setupOwner } from "./helpers";
+import { createTestApp, createTestPlatform, jsonRequest, playerAuth, setupOwner } from "./helpers";
 
 const NEW_INSTANCE = {
   id: "serie-t3",
@@ -36,19 +36,22 @@ async function setup() {
       managedDirs: ["mods"],
       files: [{ path: "mods/sodium.jar", sha256, policy: "always" }],
     });
-  return { app, platform, request, applyContent, sha256 };
+  const player = await playerAuth(app, "Nyxar");
+  const launcher = (path: string, headers: Record<string, string> = {}) =>
+    app.request(path, { headers: { ...player, ...headers } });
+  return { app, platform, request, applyContent, launcher, sha256 };
 }
 
 describe("launcher API", () => {
   it("hides instances without content and inactive ones", async () => {
-    const { app, request, applyContent } = await setup();
+    const { app, launcher, request, applyContent } = await setup();
 
-    const empty = await app.request("/api/v1/instances");
+    const empty = await launcher("/api/v1/instances");
     expect(await empty.json()).toEqual({ instances: [] });
-    expect((await app.request("/api/v1/instances/serie-t3/manifest")).status).toBe(404);
+    expect((await launcher("/api/v1/instances/serie-t3/manifest")).status).toBe(404);
 
     await applyContent();
-    const listed = (await (await app.request("/api/v1/instances")).json()) as {
+    const listed = (await (await launcher("/api/v1/instances")).json()) as {
       instances: LauncherInstance[];
     };
     expect(listed.instances.map((instance) => instance.id)).toEqual(["serie-t3"]);
@@ -63,12 +66,12 @@ describe("launcher API", () => {
       recommendedRamMb: null,
       isActive: false,
     });
-    expect(await (await app.request("/api/v1/instances")).json()).toEqual({ instances: [] });
-    expect((await app.request("/api/v1/instances/serie-t3/manifest")).status).toBe(404);
+    expect(await (await launcher("/api/v1/instances")).json()).toEqual({ instances: [] });
+    expect((await launcher("/api/v1/instances/serie-t3/manifest")).status).toBe(404);
   });
 
   it("falls back to the organization's links", async () => {
-    const { app, request, applyContent } = await setup();
+    const { app, launcher, request, applyContent } = await setup();
     await applyContent();
     await request("PUT", "/api/admin/settings", {
       name: "Bocom",
@@ -89,7 +92,7 @@ describe("launcher API", () => {
       isActive: true,
     });
 
-    const { instances } = (await (await app.request("/api/v1/instances")).json()) as {
+    const { instances } = (await (await launcher("/api/v1/instances")).json()) as {
       instances: LauncherInstance[];
     };
 
@@ -102,10 +105,10 @@ describe("launcher API", () => {
   });
 
   it("serves the manifest with signed URLs and an ETag", async () => {
-    const { app, applyContent, sha256 } = await setup();
+    const { app, launcher, applyContent, sha256 } = await setup();
     await applyContent();
 
-    const res = await app.request("/api/v1/instances/serie-t3/manifest");
+    const res = await launcher("/api/v1/instances/serie-t3/manifest");
 
     expect(res.status).toBe(200);
     const manifest = (await res.json()) as Manifest;
@@ -120,9 +123,7 @@ describe("launcher API", () => {
 
     const etag = res.headers.get("etag") as string;
     expect(etag).toMatch(/^"1\.\d+"$/);
-    const again = await app.request("/api/v1/instances/serie-t3/manifest", {
-      headers: { "If-None-Match": etag },
-    });
+    const again = await launcher("/api/v1/instances/serie-t3/manifest", { "If-None-Match": etag });
     expect(again.status).toBe(304);
 
     const url = new URL(manifest.files[0]?.url as string);

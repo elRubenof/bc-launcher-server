@@ -22,6 +22,13 @@
       "when": 1793837110031,
       "tag": "0002_instances_and_blobs",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793839950486,
+      "tag": "0003_players_and_access",
+      "breakpoints": true
     }
   ]
 }

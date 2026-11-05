@@ -165,6 +165,84 @@ export const instanceManagedDirs = sqliteTable(
   (table) => [primaryKey({ columns: [table.instanceId, table.path] })],
 );
 
+/**
+ * Minecraft players: everyone who signed in with the launcher, plus those added to a list by name
+ * before ever joining (`first_seen_at` null).
+ */
+export const players = sqliteTable(
+  "players",
+  {
+    /** Mojang profile id, lowercase with dashes. */
+    uuid: text("uuid").primaryKey(),
+    /** Last known Minecraft name (names can change; updated on every sign-in and lookup). */
+    name: text("name").notNull(),
+    firstSeenAt: timestamp("first_seen_at"),
+    lastSeenAt: timestamp("last_seen_at"),
+    createdAt: timestamp("created_at").notNull().default(now),
+  },
+  (table) => [index("players_last_seen_at").on(table.lastSeenAt)],
+);
+
+const listedPlayer = () =>
+  text("player_uuid")
+    .notNull()
+    .references(() => players.uuid);
+const addedBy = () => text("created_by").references(() => admins.id, { onDelete: "set null" });
+
+/** Members of a private organization. Ignored while the organization is public. */
+export const orgWhitelist = sqliteTable("org_whitelist", {
+  playerUuid: listedPlayer().primaryKey(),
+  createdBy: addedBy(),
+  createdAt: timestamp("created_at").notNull().default(now),
+});
+
+/** Who can play an instance whose `access` is `whitelist`. */
+export const instanceWhitelist = sqliteTable(
+  "instance_whitelist",
+  {
+    instanceId: text("instance_id")
+      .notNull()
+      .references(() => instances.id, { onDelete: "cascade" }),
+    playerUuid: listedPlayer(),
+    createdBy: addedBy(),
+    createdAt: timestamp("created_at").notNull().default(now),
+  },
+  (table) => [
+    primaryKey({ columns: [table.instanceId, table.playerUuid] }),
+    index("instance_whitelist_player").on(table.playerUuid),
+  ],
+);
+
+/** Players banned from the whole organization. Always wins over visibility and whitelists. */
+export const orgBlacklist = sqliteTable("org_blacklist", {
+  playerUuid: listedPlayer().primaryKey(),
+  /** Only admins see it. */
+  reason: text("reason"),
+  /** Null = permanent. A ban whose expiry has passed no longer counts. */
+  expiresAt: timestamp("expires_at"),
+  createdBy: addedBy(),
+  createdAt: timestamp("created_at").notNull().default(now),
+});
+
+/** Players banned from one instance: it is invisible to them. */
+export const instanceBlacklist = sqliteTable(
+  "instance_blacklist",
+  {
+    instanceId: text("instance_id")
+      .notNull()
+      .references(() => instances.id, { onDelete: "cascade" }),
+    playerUuid: listedPlayer(),
+    reason: text("reason"),
+    expiresAt: timestamp("expires_at"),
+    createdBy: addedBy(),
+    createdAt: timestamp("created_at").notNull().default(now),
+  },
+  (table) => [
+    primaryKey({ columns: [table.instanceId, table.playerUuid] }),
+    index("instance_blacklist_player").on(table.playerUuid),
+  ],
+);
+
 export const adminSessions = sqliteTable(
   "admin_sessions",
   {

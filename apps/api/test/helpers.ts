@@ -44,8 +44,46 @@ export function stubFetch(responses: Record<string, unknown> = UPSTREAM): typeof
   };
 }
 
+/** Minecraft profiles the stubbed Mojang knows: name → uuid (lowercase with dashes). */
+export const PROFILES: Record<string, string> = {
+  Nyxar: "8a1f2b3c-4d5e-4f60-8a1b-2c3d4e5fc3d2",
+  Tomate_89: "4f3a9c1e-7b2d-4e8a-9c0f-1d2e3f4a5b6c",
+  GrieferX: "77ab0c1d-2e3f-4a5b-8c6d-7e8f9a0be012",
+};
+
+/**
+ * Upstream stub that also plays Mojang: `hasJoined` confirms every known profile (whatever the
+ * `serverId`), and the profile lookups by name and uuid answer from `PROFILES`.
+ */
+export function mojangFetch(
+  profiles: Record<string, string> = PROFILES,
+  upstream: typeof fetch = stubFetch(),
+): typeof fetch {
+  const byName = (name: string | null) =>
+    Object.entries(profiles).find(([known]) => known.toLowerCase() === name?.toLowerCase());
+  const profile = ([name, uuid]: [string, string]) =>
+    Response.json({ id: uuid.replaceAll("-", ""), name });
+  return async (input, init) => {
+    const url = new URL(String(input instanceof Request ? input.url : input));
+    if (url.host === "sessionserver.mojang.com") {
+      if (url.pathname.endsWith("/hasJoined")) {
+        const found = byName(url.searchParams.get("username"));
+        return found ? profile(found) : new Response(null, { status: 204 });
+      }
+      const id = url.pathname.split("/").at(-1);
+      const found = Object.entries(profiles).find(([, uuid]) => uuid.replaceAll("-", "") === id);
+      return found ? profile(found) : new Response(null, { status: 204 });
+    }
+    if (url.host === "api.mojang.com") {
+      const found = byName(decodeURIComponent(url.pathname.split("/").at(-1) ?? ""));
+      return found ? profile(found) : new Response(null, { status: 404 });
+    }
+    return upstream(input, init);
+  };
+}
+
 /** A platform with a migrated in-memory database, in-memory blobs and stubbed upstream HTTP. */
-export async function createTestPlatform(fetchFn = stubFetch()): Promise<Platform> {
+export async function createTestPlatform(fetchFn = mojangFetch()): Promise<Platform> {
   const db = createLibsqlDatabase(":memory:");
   await migrateLibsqlDatabase(db, SOURCE_MIGRATIONS_DIR);
   return {
@@ -114,4 +152,25 @@ export async function signInAs(
   });
   const res = await jsonRequest(app, "POST", "/api/admin/auth/login", { username, password });
   return sessionCookie(res);
+}
+
+/** Signs a player in through `challenge` + `verify`; returns the response of `verify`. */
+export async function verifyPlayer(app: TestApp, username: string) {
+  const challenge = (await (
+    await app.request("/api/v1/auth/challenge", { method: "POST" })
+  ).json()) as {
+    serverId: string;
+  };
+  return jsonRequest(app, "POST", "/api/v1/auth/verify", {
+    username,
+    serverId: challenge.serverId,
+  });
+}
+
+/** Signs a player in and returns the `Authorization` header for launcher requests. */
+export async function playerAuth(app: TestApp, username: string) {
+  const res = await verifyPlayer(app, username);
+  if (res.status !== 200) throw new Error(`Player sign-in failed: ${res.status}`);
+  const { token } = (await res.json()) as { token: string };
+  return { Authorization: `Bearer ${token}` };
 }

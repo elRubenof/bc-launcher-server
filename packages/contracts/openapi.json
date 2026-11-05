@@ -5,6 +5,14 @@
     "version": "0.0.0"
   },
   "components": {
+    "securitySchemes": {
+      "playerToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "The token from `POST /api/v1/auth/verify`."
+      }
+    },
     "schemas": {
       "DiscoveryDocument": {
         "type": "object",
@@ -1109,6 +1117,133 @@
           "version",
           "stable",
           "recommended"
+        ]
+      },
+      "AuthChallenge": {
+        "type": "object",
+        "properties": {
+          "serverId": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "serverId",
+          "expiresAt"
+        ]
+      },
+      "PlayerSession": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "player": {
+            "$ref": "#/components/schemas/Player"
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt",
+          "player"
+        ]
+      },
+      "Player": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid",
+          "name"
+        ]
+      },
+      "VerifyRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{1,16}$"
+          },
+          "serverId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          }
+        },
+        "required": [
+          "username",
+          "serverId"
+        ]
+      },
+      "Organization": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "logoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "iconUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "links": {
+            "type": "object",
+            "properties": {
+              "discord": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              },
+              "web": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              }
+            },
+            "required": [
+              "discord",
+              "web"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "logoUrl",
+          "iconUrl",
+          "links"
         ]
       },
       "LauncherInstance": {
@@ -3252,12 +3387,200 @@
         }
       }
     },
+    "/api/v1/auth/challenge": {
+      "post": {
+        "summary": "Start signing a player in",
+        "description": "Returns a `serverId` valid for 5 minutes. The launcher calls Mojang's `join` with it (the Minecraft token never leaves the launcher) and then `verify`.",
+        "tags": [
+          "Launcher"
+        ],
+        "responses": {
+          "200": {
+            "description": "The challenge.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify": {
+      "post": {
+        "summary": "Finish signing a player in",
+        "description": "Checks with Mojang (`hasJoined`) that the player joined with the challenge's `serverId`. Members get a token; everyone who passes the check is recorded as a player.",
+        "tags": [
+          "Launcher"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The challenge is invalid or expired (`invalid_challenge`), or Mojang says the player didn't join with it (`not_joined`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The player isn't a member of the organization (`not_member`): not on the whitelist of a private organization, or banned. Both cases look the same.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Mojang's session server couldn't be reached (`mojang_unavailable`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "summary": "The signed-in player",
+        "tags": [
+          "Launcher"
+        ],
+        "security": [
+          {
+            "playerToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Player"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or an invalid or expired one (`unauthenticated`): sign in again with `challenge` and `verify`.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The player isn't a member of the organization (`not_member`): not on the whitelist of a private organization, or banned. Both cases look the same.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/organization": {
+      "get": {
+        "summary": "The organization's identity and links",
+        "description": "The launcher paints instances with their own colors and background; the organization has none.",
+        "tags": [
+          "Launcher"
+        ],
+        "security": [
+          {
+            "playerToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or an invalid or expired one (`unauthenticated`): sign in again with `challenge` and `verify`.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The player isn't a member of the organization (`not_member`): not on the whitelist of a private organization, or banned. Both cases look the same.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/instances": {
       "get": {
         "summary": "The instances the player can play, newest first",
-        "description": "Active instances with content. Player auth and access filtering come later.",
+        "description": "Active instances with content. Access filtering per instance comes later.",
         "tags": [
           "Launcher"
+        ],
+        "security": [
+          {
+            "playerToken": []
+          }
         ],
         "responses": {
           "200": {
@@ -3280,6 +3603,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "No token, or an invalid or expired one (`unauthenticated`): sign in again with `challenge` and `verify`.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The player isn't a member of the organization (`not_member`): not on the whitelist of a private organization, or banned. Both cases look the same.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         }
       }
@@ -3290,6 +3633,11 @@
         "description": "Send the last `ETag` in `If-None-Match` to get `304` while nothing changed. The ETag changes with `contentVersion` and when the download URLs are renewed.",
         "tags": [
           "Launcher"
+        ],
+        "security": [
+          {
+            "playerToken": []
+          }
         ],
         "parameters": [
           {
@@ -3315,6 +3663,26 @@
           },
           "304": {
             "description": "Not modified."
+          },
+          "401": {
+            "description": "No token, or an invalid or expired one (`unauthenticated`): sign in again with `challenge` and `verify`.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The player isn't a member of the organization (`not_member`): not on the whitelist of a private organization, or banned. Both cases look the same.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           },
           "404": {
             "description": "No such instance, or the player can't see it (`not_found`).",

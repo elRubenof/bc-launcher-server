@@ -8,5 +8,6 @@ export * from "./instances";
 export * from "./launcher";
 export * from "./loaders";
 export * from "./paths";
+export * from "./player-auth";
 export * from "./problem";
 export * from "./settings";

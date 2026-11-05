@@ -2,6 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { Sha256 } from "./blobs";
 import { FilePolicy } from "./content";
 import { InstanceColors, LOADERS } from "./instances";
+import { playerAuth, playerAuthResponses } from "./player-auth";
 import { problemResponse } from "./problem";
 
 const InstanceIdParam = z
@@ -62,8 +63,9 @@ export const listLauncherInstancesRoute = createRoute({
   method: "get",
   path: "/api/v1/instances",
   summary: "The instances the player can play, newest first",
-  description: "Active instances with content. Player auth and access filtering come later.",
+  description: "Active instances with content. Access filtering per instance comes later.",
   tags: ["Launcher"],
+  security: playerAuth,
   responses: {
     200: {
       description: "The instances.",
@@ -71,6 +73,7 @@ export const listLauncherInstancesRoute = createRoute({
         "application/json": { schema: z.object({ instances: z.array(LauncherInstance) }) },
       },
     },
+    ...playerAuthResponses,
   },
 });
 
@@ -81,6 +84,7 @@ export const getManifestRoute = createRoute({
   description:
     "Send the last `ETag` in `If-None-Match` to get `304` while nothing changed. The ETag changes with `contentVersion` and when the download URLs are renewed.",
   tags: ["Launcher"],
+  security: playerAuth,
   request: { params: z.object({ id: InstanceIdParam }) },
   responses: {
     200: {
@@ -88,6 +92,7 @@ export const getManifestRoute = createRoute({
       content: { "application/json": { schema: Manifest } },
     },
     304: { description: "Not modified." },
+    ...playerAuthResponses,
     404: problemResponse("No such instance, or the player can't see it (`not_found`)."),
   },
 });

@@ -2,6 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { sql } from "drizzle-orm";
 import { requireAdmin } from "./middleware/admin";
 import { sameOrigin } from "./middleware/origin";
+import { requirePlayer } from "./middleware/player";
 import type { AppEnv, PlatformResolver } from "./platform/types";
 import { problem } from "./problem";
 import { registerActivity } from "./routes/activity";
@@ -14,6 +15,7 @@ import { registerDiscovery } from "./routes/discovery";
 import { registerInstances } from "./routes/instances";
 import { registerLauncher } from "./routes/launcher";
 import { registerLoaders } from "./routes/loaders";
+import { registerPlayerAuth } from "./routes/player-auth";
 import { registerSettings } from "./routes/settings";
 import { registerSetup } from "./routes/setup";
 
@@ -35,6 +37,21 @@ export function createApp(resolvePlatform: PlatformResolver) {
   });
 
   app.use("/api/admin/*", sameOrigin, requireAdmin);
+  // Launcher routes that need a player token. Blob downloads only need their signed URL.
+  for (const path of [
+    "/api/v1/me",
+    "/api/v1/organization",
+    "/api/v1/instances",
+    "/api/v1/instances/*",
+  ]) {
+    app.use(path, requirePlayer);
+  }
+  app.openAPIRegistry.registerComponent("securitySchemes", "playerToken", {
+    type: "http",
+    scheme: "bearer",
+    bearerFormat: "JWT",
+    description: "The token from `POST /api/v1/auth/verify`.",
+  });
 
   app.get("/health", async (c) => {
     try {
@@ -58,6 +75,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
   registerInstances(app);
   registerBlobs(app);
   registerLoaders(app);
+  registerPlayerAuth(app);
   registerLauncher(app);
 
   return app;

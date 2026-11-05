@@ -1,4 +1,4 @@
-import type { Admin } from "@bc-launcher-server/contracts";
+import type { Admin, Player } from "@bc-launcher-server/contracts";
 import type { Database } from "@bc-launcher-server/db";
 
 /** Content-addressed blob storage: R2 on Workers, the filesystem on Node. */
@@ -38,5 +38,7 @@ export type AppEnv = {
     platform: Platform;
     /** The signed-in admin. Only set on `/api/admin/*` routes behind `requireAdmin`. */
     admin: Admin;
+    /** The signed-in player. Only set on launcher routes behind `requirePlayer`. */
+    player: Player;
   };
 };
