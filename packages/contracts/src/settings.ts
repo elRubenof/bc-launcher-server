@@ -35,6 +35,11 @@ export const UpdateOrganizationSettings = z
       .trim()
       .regex(/^\d+\.\d+\.\d+$/, "A version like 2.0.0")
       .nullable(),
+    /**
+     * When going from public to private: also add everyone who already signed in to the
+     * organization's whitelist, in the same change, so nobody is left out by accident.
+     */
+    whitelistJoinedPlayers: z.boolean().optional(),
   })
   .openapi("UpdateOrganizationSettings");
 

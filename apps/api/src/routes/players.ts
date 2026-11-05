@@ -1,7 +1,19 @@
 import { getPlayerRoute, listPlayersRoute, type PlayerDetail } from "@bc-launcher-server/contracts";
 import { schema } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { and, count, desc, eq, exists, isNull, not, or, type SQL, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  exists,
+  isNotNull,
+  isNull,
+  not,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import {
   activeBan,
   instanceAccess,
@@ -55,6 +67,7 @@ export function registerPlayers(app: OpenAPIHono<AppEnv>) {
     if (status === "member") filters.push(member);
     if (status === "banned") filters.push(or(banned, sql`${instanceBans} > 0`));
     if (status === "not_member") filters.push(and(not(member), not(banned)));
+    if (status === "joined") filters.push(isNotNull(schema.players.firstSeenAt));
     if (status === "never_joined") filters.push(isNull(schema.players.firstSeenAt));
     if (instance) {
       filters.push(

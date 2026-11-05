@@ -37,7 +37,15 @@ export const PlayerPage = z
   })
   .openapi("PlayerPage");
 
-export const PlayerFilter = z.enum(["all", "member", "banned", "not_member", "never_joined"]);
+/** `joined`: signed in at least once; `never_joined`: only added to a list by name. */
+export const PlayerFilter = z.enum([
+  "all",
+  "member",
+  "banned",
+  "not_member",
+  "joined",
+  "never_joined",
+]);
 
 export const Ban = z
   .object({

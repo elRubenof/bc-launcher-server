@@ -363,6 +363,9 @@
               "null"
             ],
             "pattern": "^\\d+\\.\\d+\\.\\d+$"
+          },
+          "whitelistJoinedPlayers": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -3673,6 +3676,7 @@
                 "member",
                 "banned",
                 "not_member",
+                "joined",
                 "never_joined"
               ],
               "default": "all"
