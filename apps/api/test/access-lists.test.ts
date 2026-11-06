@@ -162,7 +162,7 @@ describe("organization blacklist", () => {
     });
     expect(banned.status).toBe(201);
     expect(await banned.json()).toMatchObject({ reason: "Griefing", expiresAt });
-    expect((await app.request("/api/v1/me", { headers: auth })).status).toBe(403);
+    expect((await app.request("/api/v1/instances", { headers: auth })).status).toBe(403);
     expect((await activity(request))[0]).toMatchObject({
       action: "player.banned",
       details: { name: "Nyxar", reason: "Griefing", expiresAt },
@@ -180,7 +180,7 @@ describe("organization blacklist", () => {
 
     expect((await request("DELETE", `/api/admin/blacklist/${NYXAR}`)).status).toBe(204);
     // Still on the whitelist: back to the access they had.
-    expect((await app.request("/api/v1/me", { headers: auth })).status).toBe(200);
+    expect((await app.request("/api/v1/instances", { headers: auth })).status).toBe(200);
     expect((await activity(request))[0]).toMatchObject({ action: "player.unbanned" });
   });
 

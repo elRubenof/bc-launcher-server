@@ -47,21 +47,6 @@ export const PlayerSession = z
 
 export type PlayerSession = z.infer<typeof PlayerSession>;
 
-/** The organization as its members see it in the launcher. */
-export const Organization = z
-  .object({
-    name: z.string(),
-    description: z.string().nullable(),
-    logoUrl: z.url().nullable(),
-    links: z.object({
-      discord: z.url().nullable(),
-      web: z.url().nullable(),
-    }),
-  })
-  .openapi("Organization");
-
-export type Organization = z.infer<typeof Organization>;
-
 /** Security requirement of the routes that need a player token. */
 export const playerAuth = [{ playerToken: [] }];
 
@@ -111,34 +96,5 @@ export const verifyRoute = createRoute({
     ),
     403: playerAuthResponses[403],
     502: problemResponse("Mojang's session server couldn't be reached (`mojang_unavailable`)."),
-  },
-});
-
-export const playerMeRoute = createRoute({
-  method: "get",
-  path: "/api/v1/me",
-  summary: "The signed-in player",
-  tags: ["Launcher"],
-  security: playerAuth,
-  responses: {
-    200: { description: "The player.", content: { "application/json": { schema: Player } } },
-    ...playerAuthResponses,
-  },
-});
-
-export const playerOrganizationRoute = createRoute({
-  method: "get",
-  path: "/api/v1/organization",
-  summary: "The organization's identity and links",
-  description:
-    "The launcher paints instances with their own colors and background; the organization has none.",
-  tags: ["Launcher"],
-  security: playerAuth,
-  responses: {
-    200: {
-      description: "The organization.",
-      content: { "application/json": { schema: Organization } },
-    },
-    ...playerAuthResponses,
   },
 });

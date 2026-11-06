@@ -1,9 +1,4 @@
-import {
-  challengeRoute,
-  playerMeRoute,
-  playerOrganizationRoute,
-  verifyRoute,
-} from "@bc-launcher-server/contracts";
+import { challengeRoute, verifyRoute } from "@bc-launcher-server/contracts";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { isMember } from "../access";
 import { checkChallenge, createChallenge, signPlayerToken } from "../auth/player-tokens";
@@ -11,7 +6,6 @@ import { describeError, hasJoined, MojangUnavailableError, profileByName } from 
 import type { AppEnv } from "../platform/types";
 import { upsertPlayer } from "../players";
 import { problem } from "../problem";
-import { assetUrl, readSettings } from "../settings";
 
 export function registerPlayerAuth(app: OpenAPIHono<AppEnv>) {
   app.openapi(challengeRoute, async (c) => {
@@ -52,22 +46,5 @@ export function registerPlayerAuth(app: OpenAPIHono<AppEnv>) {
     return c.json({ token, expiresAt: expiresAt.toISOString(), player: profile }, 200, {
       "Cache-Control": "no-store",
     });
-  });
-
-  app.openapi(playerMeRoute, (c) => c.json(c.var.player, 200));
-
-  app.openapi(playerOrganizationRoute, async (c) => {
-    const { db, config } = c.var.platform;
-    const settings = await readSettings(db);
-    return c.json(
-      {
-        name: settings.name,
-        description: settings.description,
-        logoUrl: assetUrl(config, settings.logoBlob),
-        links: { discord: settings.discordUrl, web: settings.webUrl },
-      },
-      200,
-      { "Cache-Control": "private, no-cache" },
-    );
   });
 }

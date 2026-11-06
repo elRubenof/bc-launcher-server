@@ -139,7 +139,7 @@ describe("organization settings", () => {
 
     const whitelist = await platform.db.select().from(schema.orgWhitelist);
     expect(whitelist).toHaveLength(2);
-    expect((await app.request("/api/v1/me", { headers: nyxar })).status).toBe(200);
+    expect((await app.request("/api/v1/instances", { headers: nyxar })).status).toBe(200);
     expect((await verifyPlayer(app, "Tomate_89")).status).toBe(200);
     expect((await verifyPlayer(app, "GrieferX")).status).toBe(403);
 

@@ -47,11 +47,10 @@ describe("player auth", () => {
     expect(row?.firstSeenAt).toBeInstanceOf(Date);
     expect(row?.lastSeenAt).toEqual(row?.firstSeenAt);
 
-    const me = await app.request("/api/v1/me", {
+    const instances = await app.request("/api/v1/instances", {
       headers: { Authorization: `Bearer ${session.token}` },
     });
-    expect(me.status).toBe(200);
-    expect(await me.json()).toEqual({ uuid: NYXAR, name: "Nyxar" });
+    expect(instances.status).toBe(200);
   });
 
   it("keeps the first access and updates the name on later sign-ins", async () => {
@@ -177,25 +176,12 @@ describe("player auth", () => {
       `Bearer ${expired.token}`,
       `Bearer ${wrongKey}`,
     ]) {
-      const res = await app.request("/api/v1/me", {
+      const res = await app.request("/api/v1/instances", {
         headers: header ? { Authorization: header } : {},
       });
       expect(res.status).toBe(401);
       expect(await res.json()).toMatchObject({ code: "unauthenticated" });
     }
-  });
-
-  it("serves the organization to members", async () => {
-    const { app } = await setup();
-    const auth = await playerAuth(app, "Nyxar");
-    const res = await app.request("/api/v1/organization", { headers: auth });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({
-      name: "BC Launcher Server",
-      description: null,
-      logoUrl: null,
-      links: { discord: null, web: null },
-    });
   });
 
   it("refuses non-members of a private organization, with or without a token", async () => {
@@ -210,12 +196,12 @@ describe("player auth", () => {
     const players = await platform.db.select().from(schema.players);
     expect(players.map((player) => player.name).sort()).toEqual(["Nyxar", "Tomate_89"]);
 
-    const me = await app.request("/api/v1/me", { headers: auth });
-    expect(me.status).toBe(403);
-    expect(await me.json()).toMatchObject({ code: "not_member" });
+    const res = await app.request("/api/v1/instances", { headers: auth });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ code: "not_member" });
 
     await platform.db.insert(schema.orgWhitelist).values({ playerUuid: NYXAR });
-    expect((await app.request("/api/v1/me", { headers: auth })).status).toBe(200);
+    expect((await app.request("/api/v1/instances", { headers: auth })).status).toBe(200);
   });
 
   it("treats an organization ban like not being a member until it expires", async () => {
@@ -225,12 +211,12 @@ describe("player auth", () => {
       .insert(schema.orgBlacklist)
       .values({ playerUuid: NYXAR, expiresAt: new Date(Date.now() + 60_000) });
 
-    const me = await app.request("/api/v1/me", { headers: auth });
-    expect(me.status).toBe(403);
-    expect(await me.json()).toMatchObject({ code: "not_member" });
+    const res = await app.request("/api/v1/instances", { headers: auth });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ code: "not_member" });
     expect((await verifyPlayer(app, "Nyxar")).status).toBe(403);
 
     await platform.db.update(schema.orgBlacklist).set({ expiresAt: new Date(Date.now() - 1000) });
-    expect((await app.request("/api/v1/me", { headers: auth })).status).toBe(200);
+    expect((await app.request("/api/v1/instances", { headers: auth })).status).toBe(200);
   });
 });
