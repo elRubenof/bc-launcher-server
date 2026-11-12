@@ -1,21 +1,36 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { ChevronDownIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { LanguageSelect } from "@/components/language-select";
-import { useI18n } from "@/i18n";
+import { type MessageKey, useI18n } from "@/i18n";
 import { organizationQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 /** Official launcher builds. The launcher is generic; the update feed never comes from here. */
-const LAUNCHER_RELEASES_URL = "https://github.com/elRubenof/bc-launcher/releases/latest";
+const LAUNCHER_DOWNLOAD_URL = "https://github.com/elRubenof/bc-launcher/releases/latest/download";
 
+/** Each system's installer, as the launcher's release workflow names it. */
 const SYSTEMS = [
-  { id: "windows", name: "Windows" },
-  { id: "macos", name: "macOS" },
-  { id: "linux", name: "Linux" },
+  { id: "windows", name: "Windows", file: "BC-Launcher-Installer.exe" },
+  { id: "macos", name: "macOS", file: "BC-Launcher.dmg" },
+  { id: "linux", name: "Linux", file: "BC-Launcher.AppImage" },
 ] as const;
 
 type SystemId = (typeof SYSTEMS)[number]["id"];
+
+/** The installation section of the launcher's README, in each language. */
+const LAUNCHER_GUIDE_URLS = {
+  en: "https://github.com/elRubenof/bc-launcher#installation",
+  es: "https://github.com/elRubenof/bc-launcher/blob/main/README.es.md#instalaci%C3%B3n",
+} as const;
+
+/** How to get past each system's warning about an unsigned app. */
+const WARNING_STEPS: Record<SystemId, MessageKey[]> = {
+  windows: ["public.warnWindows1", "public.warnWindows2", "public.warnWindows3"],
+  macos: ["public.warnMacos1", "public.warnMacos2", "public.warnMacos3"],
+  linux: ["public.warnLinux1", "public.warnLinux2"],
+};
 
 function detectSystem(): SystemId | null {
   const agent = navigator.userAgent.toLowerCase();
@@ -27,12 +42,12 @@ function detectSystem(): SystemId | null {
 
 /** The organization's public page: who they are, the launcher downloads and the deep link. */
 export function PublicPage() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const organization = useQuery(organizationQuery);
   const org = organization.data;
   const serverUrl = window.location.origin;
-  const host = window.location.host;
   const system = detectSystem();
+  const [warningSystem, setWarningSystem] = useState<SystemId>(system ?? "windows");
 
   useEffect(() => {
     if (org) document.title = org.name;
@@ -89,7 +104,7 @@ export function PublicPage() {
               return (
                 <a
                   key={item.id}
-                  href={LAUNCHER_RELEASES_URL}
+                  href={`${LAUNCHER_DOWNLOAD_URL}/${item.file}`}
                   className={cn(
                     "flex flex-col gap-1.5 rounded-[14px] border bg-[#2e1d37] p-[22px] text-white! no-underline",
                     mine ? "border-2 border-primary" : "border-[#3a2745]",
@@ -109,6 +124,60 @@ export function PublicPage() {
               );
             })}
           </div>
+
+          <details className="group rounded-[14px] border border-[#3a2745]">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-[22px] py-4 [&::-webkit-details-marker]:hidden">
+              <span className="text-[15px] font-semibold">{t("public.warnTitle")}</span>
+              <ChevronDownIcon
+                aria-hidden="true"
+                className="size-4 shrink-0 text-[#bba8c7] transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <div className="flex flex-col gap-3.5 px-[22px] pb-5">
+              <p className="m-0 max-w-[70ch] text-sm text-[#d9c8e2]">{t("public.warnText")}</p>
+              <div
+                role="tablist"
+                className="inline-flex self-start gap-1 rounded-[9px] bg-[#2a1b32] p-[3px]"
+              >
+                {SYSTEMS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={item.id === warningSystem}
+                    onClick={() => setWarningSystem(item.id)}
+                    className={cn(
+                      "cursor-pointer rounded-[7px] px-3 py-1.5 text-[13px] font-semibold",
+                      item.id === warningSystem
+                        ? "bg-[#2e1d37] text-white shadow-[inset_0_0_0_1px_#3a2745]"
+                        : "text-[#bba8c7]",
+                    )}
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
+              <ol className="m-0 flex list-none flex-col gap-2.5 p-0">
+                {WARNING_STEPS[warningSystem].map((key, index) => (
+                  <li
+                    key={key}
+                    className="grid grid-cols-[26px_1fr] items-start gap-2.5 text-[15px]"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex size-[26px] items-center justify-center rounded-full border border-[#3a2745] bg-[#2a1b32] text-[13px] font-bold text-[#e2a6ec]"
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0">{t(key)}</span>
+                  </li>
+                ))}
+              </ol>
+              <a href={LAUNCHER_GUIDE_URLS[language]} className="text-sm">
+                {t("public.warnGuide")}
+              </a>
+            </div>
+          </details>
         </section>
 
         <section aria-labelledby="steps" className="flex flex-col gap-5">
@@ -120,7 +189,7 @@ export function PublicPage() {
               [
                 ["public.step1", t("public.step1Text")],
                 ["public.step2", t("public.step2Text")],
-                ["public.step3", t("public.step3Text", { host })],
+                ["public.step3", t("public.step3Text", { name: org?.name ?? "…" })],
               ] as const
             ).map(([title, text], index) => (
               <li key={title} className="flex flex-col gap-2 rounded-[14px] bg-[#2a1b32] p-5">

@@ -188,13 +188,29 @@ export const es = {
   "public.download": "Descarga BC Launcher",
   "public.yourSystem": "Tu sistema",
   "public.latestVersion": "Última versión",
+  "public.warnTitle": "¿Te sale un aviso al abrirlo?",
+  "public.warnText":
+    "BC Launcher es gratuito y de código abierto, pero no tiene firma de pago, así que tu sistema no lo reconoce y avisa. Solo pasa la primera vez.",
+  "public.warnWindows1": "Abre BC-Launcher-Installer.exe.",
+  "public.warnWindows2": "Si aparece «Windows protegió su PC», pulsa «Más información».",
+  "public.warnWindows3": "Pulsa «Ejecutar de todas formas» y sigue el instalador.",
+  "public.warnMacos1": "Abre BC-Launcher.dmg y arrastra BC Launcher a Aplicaciones.",
+  "public.warnMacos2":
+    "Ábrelo. Si macOS dice que no puede verificar que no tiene software malicioso, pulsa «OK».",
+  "public.warnMacos3":
+    "Ve a Ajustes del Sistema › Privacidad y seguridad, baja hasta el final y pulsa «Abrir igualmente». Confirma con tu contraseña.",
+  "public.warnLinux1":
+    "Haz clic derecho en BC-Launcher.AppImage › Propiedades y marca «Permitir ejecutar como programa».",
+  "public.warnLinux2":
+    "Ábrelo con doble clic. Si no arranca, puede que te falte FUSE: lo explica la guía completa.",
+  "public.warnGuide": "Guía completa de instalación →",
   "public.steps": "Cómo empezar",
   "public.step1": "Instala el launcher",
   "public.step1Text": "Descárgalo para tu sistema e instálalo.",
   "public.step2": "Inicia sesión con Microsoft",
   "public.step2Text": "Con la cuenta con la que tienes Minecraft.",
   "public.step3": "Vuelve y pulsa «Abrir en BC Launcher»",
-  "public.step3Text": "O añade la organización a mano con la dirección {host}.",
+  "public.step3Text": "El launcher te preguntará si quieres añadir {name}.",
   "public.footer": "Servidor de {name} para BC Launcher",
   "public.adminPanel": "Panel de administración",
   "common.next": "Siguiente",
