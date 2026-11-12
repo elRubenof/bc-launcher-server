@@ -6,7 +6,6 @@ import { useEffect, useId, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useI18n } from "@/i18n";
 import { clickableRow } from "@/lib/clickable-row";
 import { formatDate, formatRelative } from "@/lib/format";

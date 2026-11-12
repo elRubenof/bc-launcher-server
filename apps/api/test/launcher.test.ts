@@ -53,7 +53,7 @@ async function setup() {
 
 describe("launcher API", () => {
   it("hides instances without content and inactive ones", async () => {
-    const { app, launcher, request, applyContent } = await setup();
+    const { launcher, request, applyContent } = await setup();
 
     const empty = await launcher("/api/v1/instances");
     expect(await empty.json()).toEqual({ instances: [] });
@@ -139,7 +139,7 @@ describe("launcher API", () => {
   });
 
   it("falls back to the organization's links", async () => {
-    const { app, launcher, request, applyContent } = await setup();
+    const { launcher, request, applyContent } = await setup();
     await applyContent();
     await request("PUT", "/api/admin/settings", {
       name: "Bocom",

@@ -71,11 +71,11 @@ volumes:
 
 Arráncalo con `docker compose up -d` y [abre el panel enseguida](#después-de-desplegar-abre-el-panel-enseguida) en `https://launcher.example.com/admin`. Las migraciones se aplican al arrancar el contenedor. Haz copias de seguridad del volumen `data`.
 
-| Variable             | Obligatoria | Descripción                                                                                                         |
-| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------- |
-| `PUBLIC_URL`         | Sí          | El origen público del servidor (y su ruta base, si la tiene). Se usa en los enlaces de descarga y las cookies seguras. |
-| `JWT_SECRET`         | No          | Ver [Secretos](#secretos). Si se pone, 32 caracteres aleatorios o más.                                              |
-| `PORT`               | No          | Puerto de escucha dentro del contenedor (por defecto `3000`).                                                       |
+| Variable             | Obligatoria | Descripción                                                                                                                           |
+| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_URL`         | Sí          | El origen público del servidor (y su ruta base, si la tiene). Se usa en los enlaces de descarga y las cookies seguras.                |
+| `JWT_SECRET`         | No          | Ver [Secretos](#secretos). Si se pone, 32 caracteres aleatorios o más.                                                                |
+| `PORT`               | No          | Puerto de escucha dentro del contenedor (por defecto `3000`).                                                                         |
 | `MOJANG_SESSION_URL` | No          | Un proxy del servidor de sesiones de Mojang; ver [Identidad de los jugadores](#identidad-de-los-jugadores). No hace falta con Docker. |
 
 ### Identidad de los jugadores
