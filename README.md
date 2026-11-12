@@ -1,12 +1,18 @@
 # BC Launcher Server
 
+[![Latest release](https://img.shields.io/github/v/release/elRubenof/bc-launcher-server)](https://github.com/elRubenof/bc-launcher-server/releases/latest)
+[![CI](https://github.com/elRubenof/bc-launcher-server/actions/workflows/ci.yml/badge.svg)](https://github.com/elRubenof/bc-launcher-server/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/elRubenof/bc-launcher-server)](LICENSE)
+
+English · [Español](README.es.md)
+
 Server for [BC Launcher](https://github.com/elRubenof/bc-launcher). Each organization (a developer or organizer of series and events) deploys its own server to manage its instances, files, news, branding and player access, and BC Launcher syncs from it.
 
 It includes a versioned API for the launcher, an admin panel (`/admin`) and a public download page (`/`), and it can be deployed to Cloudflare (Workers + D1 + R2) or with Docker.
 
 ## Status
 
-Early versions (`0.x`). The launcher API (`/api/v1`) and the discovery document are kept backwards compatible; the admin panel and its internal API may still change.
+Versions follow SemVer, starting at `1.0.0`. The launcher API (`/api/v1`) and the discovery document are kept backwards compatible; the admin panel and its internal API may change between versions.
 
 ## Deploy
 
@@ -50,7 +56,7 @@ The image `ghcr.io/elrubenof/bc-launcher-server` (`linux/amd64` and `linux/arm64
 # docker-compose.yml
 services:
   server:
-    image: ghcr.io/elrubenof/bc-launcher-server:0.1 # or a full version, or latest
+    image: ghcr.io/elrubenof/bc-launcher-server:1.0 # or a full version, or latest
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
@@ -117,7 +123,7 @@ Players add the server from the public page (`/`), which links to the launcher d
 Releases are `vX.Y.Z` tags; see [Releases](https://github.com/elRubenof/bc-launcher-server/releases). When there is a newer one, the panel shows it to the owner and admins (the server checks GitHub every few hours). Updating is manual; database migrations apply on their own.
 
 - **Cloudflare:** merge the new release into your copy of the repository (e.g. `git pull https://github.com/elRubenof/bc-launcher-server vX.Y.Z` and push). Cloudflare builds and deploys every push.
-- **Docker:** change the image tag (or `docker compose pull` for `latest` / `0.1`) and `docker compose up -d`.
+- **Docker:** change the image tag (or `docker compose pull` for `latest` / `1.0`) and `docker compose up -d`.
 
 ## Releases and the launcher API
 
