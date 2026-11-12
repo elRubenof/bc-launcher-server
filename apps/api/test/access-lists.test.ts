@@ -51,9 +51,9 @@ describe("organization whitelist", () => {
     const added = await request("POST", "/api/admin/whitelist", { player: "tomate_89" });
     expect(added.status).toBe(201);
     const entry = (await added.json()) as WhitelistEntry;
-    // Tomate_89 tried to sign in before, so they count as joined.
+    // Tomate_89 tried to sign in before, but non-members aren't recorded.
     expect(entry).toMatchObject({
-      player: { uuid: TOMATE, name: "Tomate_89", joined: true },
+      player: { uuid: TOMATE, name: "Tomate_89", joined: false },
       addedBy: { username: "owner" },
     });
 

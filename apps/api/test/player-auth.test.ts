@@ -7,6 +7,7 @@ import { MOJANG_SESSION_URL } from "../src/platform/config";
 import {
   createTestApp,
   createTestPlatform,
+  joinPlayer,
   jsonRequest,
   mojangFetch,
   PROFILES,
@@ -23,7 +24,7 @@ async function setup(fetchFn?: typeof fetch) {
 }
 
 describe("player auth", () => {
-  it("signs a player in with a Mojang session and records them", async () => {
+  it("signs a player in with a Mojang session and records them without an access", async () => {
     const { app, platform } = await setup();
 
     const challenge = await app.request("/api/v1/auth/challenge", { method: "POST" });
@@ -44,8 +45,9 @@ describe("player auth", () => {
       .select()
       .from(schema.players)
       .where(eq(schema.players.uuid, NYXAR));
-    expect(row?.firstSeenAt).toBeInstanceOf(Date);
-    expect(row?.lastSeenAt).toEqual(row?.firstSeenAt);
+    // Signing in isn't an access: the launcher renews tokens in the background.
+    expect(row?.firstSeenAt).toBeNull();
+    expect(row?.lastSeenAt).toBeNull();
 
     const instances = await app.request("/api/v1/instances", {
       headers: { Authorization: `Bearer ${session.token}` },
@@ -53,9 +55,9 @@ describe("player auth", () => {
     expect(instances.status).toBe(200);
   });
 
-  it("keeps the first access and updates the name on later sign-ins", async () => {
+  it("updates the name on later sign-ins without moving the access dates", async () => {
     const { app, platform } = await setup();
-    await playerAuth(app, "Nyxar");
+    await joinPlayer(app, platform, "Nyxar");
     const [first] = await platform.db.select().from(schema.players);
     await platform.db
       .update(schema.players)
@@ -66,6 +68,7 @@ describe("player auth", () => {
     const [again] = await platform.db.select().from(schema.players);
     expect(again?.name).toBe("Nyxar");
     expect(again?.firstSeenAt).toEqual(first?.firstSeenAt);
+    expect(again?.lastSeenAt).toEqual(first?.lastSeenAt);
   });
 
   it("refuses forged, expired and unconfirmed challenges", async () => {
@@ -192,9 +195,9 @@ describe("player auth", () => {
     const verify = await verifyPlayer(app, "Tomate_89");
     expect(verify.status).toBe(403);
     expect(await verify.json()).toMatchObject({ code: "not_member" });
-    // Recorded anyway, so an admin can whitelist them.
+    // Not recorded: a private organization only lists who could get in.
     const players = await platform.db.select().from(schema.players);
-    expect(players.map((player) => player.name).sort()).toEqual(["Nyxar", "Tomate_89"]);
+    expect(players.map((player) => player.name)).toEqual(["Nyxar"]);
 
     const res = await app.request("/api/v1/instances", { headers: auth });
     expect(res.status).toBe(403);

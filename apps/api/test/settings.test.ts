@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   createTestApp,
   createTestPlatform,
+  joinPlayer,
   jsonRequest,
   playerAuth,
   setupOwner,
@@ -117,8 +118,8 @@ describe("organization settings", () => {
 
   it("can whitelist everyone who already joined when going private", async () => {
     const { app, platform, owner } = await setup();
-    const nyxar = await playerAuth(app, "Nyxar");
-    await playerAuth(app, "Tomate_89");
+    const nyxar = await joinPlayer(app, platform, "Nyxar");
+    await joinPlayer(app, platform, "Tomate_89");
     // Added by name, never joined: not imported.
     await jsonRequest(
       app,

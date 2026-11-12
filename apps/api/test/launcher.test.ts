@@ -48,7 +48,7 @@ async function setup() {
   const player = await playerAuth(app, "Nyxar");
   const launcher = (path: string, headers: Record<string, string> = {}) =>
     app.request(path, { headers: { ...player, ...headers } });
-  return { app, platform, request, applyContent, launcher, sha256 };
+  return { app, platform, request, applyContent, launcher, player, sha256 };
 }
 
 describe("launcher API", () => {
@@ -241,5 +241,69 @@ describe("launcher API", () => {
 
     expect(first.href).toBe(last.href);
     expect(Number(first.searchParams.get("exp")) * 1000 - start).toBe(2 * window);
+  });
+
+  describe("presence", () => {
+    async function presenceSetup() {
+      const ctx = await setup();
+      const presence = (
+        body: unknown = { instanceId: "serie-t3" },
+        headers: Record<string, string> = ctx.player,
+      ) => jsonRequest(ctx.app, "POST", "/api/v1/presence", body, headers);
+      const seen = async () => {
+        const [row] = await ctx.platform.db
+          .select()
+          .from(schema.players)
+          .where(eq(schema.players.uuid, PROFILES.Nyxar as string));
+        return row;
+      };
+      return { ...ctx, presence, seen };
+    }
+
+    it("sets the first access once and moves the last one", async () => {
+      const { applyContent, platform, presence, seen } = await presenceSetup();
+      await applyContent();
+      expect((await seen())?.lastSeenAt).toBeNull();
+
+      expect((await presence()).status).toBe(204);
+      const first = await seen();
+      expect(first?.firstSeenAt).toBeInstanceOf(Date);
+      expect(first?.lastSeenAt).toEqual(first?.firstSeenAt);
+
+      const hourAgo = new Date(Date.now() - 3600_000);
+      await platform.db.update(schema.players).set({ firstSeenAt: hourAgo, lastSeenAt: hourAgo });
+      expect((await presence()).status).toBe(204);
+      const again = await seen();
+      expect(again?.firstSeenAt).toEqual(hourAgo);
+      expect(again?.lastSeenAt?.getTime()).toBeGreaterThan(hourAgo.getTime());
+    });
+
+    it("counts an instance only if the player can play it", async () => {
+      const { applyContent, presence, seen } = await presenceSetup();
+
+      // No content yet: invisible to the player.
+      const hidden = await presence();
+      expect(hidden.status).toBe(404);
+      expect(await hidden.json()).toMatchObject({ code: "not_found" });
+      expect((await seen())?.lastSeenAt).toBeNull();
+
+      await applyContent();
+      expect((await presence({})).status).toBe(400);
+      expect((await presence({ instanceId: "nope" })).status).toBe(404);
+      expect((await presence()).status).toBe(204);
+      expect((await seen())?.lastSeenAt).toBeInstanceOf(Date);
+    });
+
+    it("needs a member's token", async () => {
+      const { applyContent, platform, presence, seen } = await presenceSetup();
+      await applyContent();
+      expect((await presence(undefined, {})).status).toBe(401);
+
+      await platform.db.update(schema.settings).set({ visibility: "private" });
+      const res = await presence();
+      expect(res.status).toBe(403);
+      expect(await res.json()).toMatchObject({ code: "not_member" });
+      expect((await seen())?.lastSeenAt).toBeNull();
+    });
   });
 });

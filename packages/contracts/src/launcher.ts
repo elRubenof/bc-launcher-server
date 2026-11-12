@@ -102,6 +102,32 @@ export const getManifestRoute = createRoute({
   },
 });
 
+export const PresenceRequest = z
+  .object({
+    /** The instance the player entered. */
+    instanceId: z.string(),
+  })
+  .openapi("PresenceRequest");
+
+export const presenceRoute = createRoute({
+  method: "post",
+  path: "/api/v1/presence",
+  summary: "Record that the player entered an instance",
+  description:
+    "Moves the player's last access to the organization (and sets the first one) when they enter one of its instances they can play. The launcher calls it only then: opening the organization or background requests, such as listing the instances of every added organization, don't count.",
+  tags: ["Launcher"],
+  security: playerAuth,
+  request: {
+    body: { required: true, content: { "application/json": { schema: PresenceRequest } } },
+  },
+  responses: {
+    204: { description: "Recorded." },
+    400: problemResponse("Invalid request."),
+    ...playerAuthResponses,
+    404: problemResponse("No such instance, or the player can't see it (`not_found`)."),
+  },
+});
+
 export const getBlobRoute = createRoute({
   method: "get",
   path: "/api/v1/blobs/{sha256}",

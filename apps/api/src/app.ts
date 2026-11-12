@@ -42,7 +42,7 @@ export function createApp(resolvePlatform: PlatformResolver) {
 
   app.use("/api/admin/*", sameOrigin, requireAdmin);
   // Launcher routes that need a player token. Blob downloads only need their signed URL.
-  for (const path of ["/api/v1/instances", "/api/v1/instances/*"]) {
+  for (const path of ["/api/v1/instances", "/api/v1/instances/*", "/api/v1/presence"]) {
     app.use(path, requirePlayer);
   }
   app.openAPIRegistry.registerComponent("securitySchemes", "playerToken", {

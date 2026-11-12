@@ -37,11 +37,13 @@ export function registerPlayerAuth(app: OpenAPIHono<AppEnv>) {
     }
     if (!profile) return problem(c, 401, "not_joined", "Mojang didn't confirm the sign-in");
 
-    // Recorded even if not a member, so admins can find them to add them to a whitelist.
-    await upsertPlayer(db, profile, new Date());
+    // Non-members aren't recorded: a private organization only lists who could get in. Signing in
+    // doesn't count as an access either (the launcher renews tokens in the background); the
+    // launcher reports real ones with `presence`.
     if (!(await isMember(db, profile.uuid))) {
       return problem(c, 403, "not_member", "You don't have access to this organization");
     }
+    await upsertPlayer(db, profile);
     const { token, expiresAt } = await signPlayerToken(config, profile.uuid);
     return c.json({ token, expiresAt: expiresAt.toISOString(), player: profile }, 200, {
       "Cache-Control": "no-store",

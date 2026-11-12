@@ -211,8 +211,9 @@ export const news = sqliteTable(
 );
 
 /**
- * Minecraft players: everyone who signed in with the launcher, plus those added to a list by name
- * before ever joining (`first_seen_at` null).
+ * Minecraft players: members who signed in with the launcher, plus those added to a list by name.
+ * The access dates are set when they enter an instance, `POST /api/v1/presence` (`first_seen_at`
+ * null = never entered).
  */
 export const players = sqliteTable(
   "players",

@@ -2022,6 +2022,17 @@
           "url"
         ]
       },
+      "PresenceRequest": {
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instanceId"
+        ]
+      },
       "LauncherNewsItem": {
         "type": "object",
         "properties": {
@@ -5346,7 +5357,7 @@
     "/api/v1/auth/verify": {
       "post": {
         "summary": "Finish signing a player in",
-        "description": "Checks with Mojang (`hasJoined`) that the player joined with the challenge's `serverId`. When discovery's `auth.type` is `unverified`, the server can't reach Mojang and only looks the name up, trusting it. Members get a token; everyone who passes the check is recorded as a player.",
+        "description": "Checks with Mojang (`hasJoined`) that the player joined with the challenge's `serverId`. When discovery's `auth.type` is `unverified`, the server can't reach Mojang and only looks the name up, trusting it. Members get a token and are recorded as players; non-members aren't recorded. Signing in isn't an access: the launcher reports entering an instance with `POST /api/v1/presence`.",
         "tags": [
           "Launcher"
         ],
@@ -5507,6 +5518,75 @@
           },
           "304": {
             "description": "Not modified."
+          },
+          "401": {
+            "description": "No token, or an invalid or expired one (`unauthenticated`): sign in again with `challenge` and `verify`.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The player isn't a member of the organization (`not_member`): not on the whitelist of a private organization, or banned. Both cases look the same.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such instance, or the player can't see it (`not_found`).",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/presence": {
+      "post": {
+        "summary": "Record that the player entered an instance",
+        "description": "Moves the player's last access to the organization (and sets the first one) when they enter one of its instances they can play. The launcher calls it only then: opening the organization or background requests, such as listing the instances of every added organization, don't count.",
+        "tags": [
+          "Launcher"
+        ],
+        "security": [
+          {
+            "playerToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresenceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Recorded."
+          },
+          "400": {
+            "description": "Invalid request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           },
           "401": {
             "description": "No token, or an invalid or expired one (`unauthenticated`): sign in again with `challenge` and `verify`.",

@@ -4,9 +4,9 @@ import { sha256Hex } from "../src/auth/crypto";
 import {
   createTestApp,
   createTestPlatform,
+  joinPlayer,
   jsonRequest,
   PROFILES,
-  playerAuth,
   setupOwner,
 } from "./helpers";
 
@@ -45,8 +45,8 @@ async function setup() {
       files: [{ path: "mods/sodium.jar", sha256, policy: "always" }],
     });
   }
-  await playerAuth(app, "Nyxar");
-  await playerAuth(app, "Tomate_89");
+  await joinPlayer(app, platform, "Nyxar");
+  await joinPlayer(app, platform, "Tomate_89");
   await request("POST", "/api/admin/instances/evento/blacklist", {
     player: "Tomate_89",
     reason: "Griefing",

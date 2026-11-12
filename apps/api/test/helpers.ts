@@ -5,6 +5,7 @@ import { MemoryBlobStore } from "../src/platform/memory";
 import { createLibsqlDatabase } from "../src/platform/node/libsql-database";
 import { migrateLibsqlDatabase, SOURCE_MIGRATIONS_DIR } from "../src/platform/node/migrate";
 import type { Platform } from "../src/platform/types";
+import { markSeen } from "../src/players";
 
 /** Upstream metadata the tests know about (Mojang, Fabric, Quilt, Forge, NeoForge). */
 export const UPSTREAM: Record<string, unknown> = {
@@ -190,4 +191,11 @@ export async function playerAuth(app: TestApp, username: string) {
   if (res.status !== 200) throw new Error(`Player sign-in failed: ${res.status}`);
   const { token } = (await res.json()) as { token: string };
   return { Authorization: `Bearer ${token}` };
+}
+
+/** Signs a player in and records an access, as entering an instance does (`presence`). */
+export async function joinPlayer(app: TestApp, platform: Platform, username: string) {
+  const auth = await playerAuth(app, username);
+  await markSeen(platform.db, PROFILES[username] as string, new Date());
+  return auth;
 }

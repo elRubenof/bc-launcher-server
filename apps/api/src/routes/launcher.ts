@@ -6,6 +6,7 @@ import {
   listLauncherInstancesRoute,
   type Manifest,
   NEWS_PAGE_SIZE,
+  presenceRoute,
 } from "@bc-launcher-server/contracts";
 import { type Database, schema } from "@bc-launcher-server/db";
 import type { OpenAPIHono } from "@hono/zod-openapi";
@@ -15,6 +16,7 @@ import { base64UrlDecode, base64UrlEncode } from "../auth/crypto";
 import { readFiles } from "../content";
 import type { InstanceRow } from "../instances";
 import type { AppEnv, Config } from "../platform/types";
+import { markSeen } from "../players";
 import { problem } from "../problem";
 import { assetUrl, readSettings, type SettingsRow } from "../settings";
 import { checkBlobSignature, signedBlobUrl, urlWindow } from "../signed-urls";
@@ -141,6 +143,17 @@ export function registerLauncher(app: OpenAPIHono<AppEnv>) {
       ),
     };
     return c.json(manifest, 200, headers);
+  });
+
+  app.openapi(presenceRoute, async (c) => {
+    const { db } = c.var.platform;
+    const { uuid } = c.var.player;
+    const { instanceId } = c.req.valid("json");
+    if (!(await playableInstance(db, instanceId, uuid))) {
+      return problem(c, 404, "not_found", "No such instance");
+    }
+    await markSeen(db, uuid, new Date());
+    return c.body(null, 204);
   });
 
   app.openapi(getBlobRoute, async (c) => {
